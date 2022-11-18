@@ -36,17 +36,17 @@ export class History {
     traverse(parsedMoves, fen, parent = undefined, ply = 1, sloppy = false) {
         const chess = fen ? new Chess(fen) : new Chess() // chess.js must be included in HTML
         const moves = []
-        let previousMove = parent
+        let prevMove = parent
         for (let parsedMove of parsedMoves) {
             if (parsedMove.notation) {
                 const notation = parsedMove.notation.notation
                 const move = chess.move(notation, {sloppy: sloppy})
                 if (move) {
-                    if (previousMove) {
-                        move.previous = previousMove
-                        previousMove.next = move
+                    if (prevMove) {
+                        move.prev = prevMove
+                        prevMove.next = move
                     } else {
-                        move.previous = undefined
+                        move.prev = undefined
                     }
                     move.ply = ply
                     this.fillMoveFromChessState(move, chess)
@@ -67,12 +67,12 @@ export class History {
                     if (parsedVariations.length > 0) {
                         const lastFen = moves.length > 0 ? moves[moves.length - 1].fen : fen
                         for (let parsedVariation of parsedVariations) {
-                            move.variations.push(this.traverse(parsedVariation, lastFen, previousMove, ply, sloppy))
+                            move.variations.push(this.traverse(parsedVariation, lastFen, prevMove, ply, sloppy))
                         }
                     }
                     move.variation = moves
                     moves.push(move)
-                    previousMove = move
+                    prevMove = move
                 } else {
                     throw new IllegalMoveException(chess.fen(), notation)
                 }
@@ -116,9 +116,9 @@ export class History {
         const moves = []
         let pointer = move
         moves.push(pointer)
-        while (pointer.previous) {
-            moves.push(pointer.previous)
-            pointer = pointer.previous
+        while (pointer.prev) {
+            moves.push(pointer.prev)
+            pointer = pointer.prev
         }
         return moves.reverse()
     }
@@ -126,19 +126,19 @@ export class History {
     /**
      * Don't add the move, just validate, if it would be correct
      * @param notation
-     * @param previous
+     * @param previ
      * @param sloppy
      * @returns {[]|{}}
      */
-    validateMove(notation, previous = undefined, sloppy = true) {
-        if (!previous) {
+    validateMove(notation, prev = undefined, sloppy = true) {
+        if (!prev) {
             if (this.moves.length > 0) {
-                previous = this.moves[this.moves.length - 1]
+                prev = this.moves[this.moves.length - 1]
             }
         }
         const chess = new Chess(this.setUpFen ? this.setUpFen : undefined)
-        if (previous) {
-            const historyToMove = this.historyToMove(previous)
+        if (prev) {
+            const historyToMove = this.historyToMove(prev)
             for (const moveInHistory of historyToMove) {
                 chess.move(moveInHistory)
             }
@@ -150,28 +150,28 @@ export class History {
         return move
     }
 
-    addMove(notation, previous = undefined, sloppy = true) {
-        if (!previous) {
+    addMove(notation, prev = undefined, sloppy = true) {
+        if (!prev) {
             if (this.moves.length > 0) {
-                previous = this.moves[this.moves.length - 1]
+                prev = this.moves[this.moves.length - 1]
             }
         }
-        const move = this.validateMove(notation, previous, sloppy)
+        const move = this.validateMove(notation, prev, sloppy)
         if (!move) {
             throw new Error("invalid move")
         }
         // this.fillMoveFromChessState(move, chess)
-        if (previous) {
-            move.previous = previous
-            move.ply = previous.ply + 1
-            if (previous.next) {
-                previous.next.variations.push([])
-                move.variation = previous.next.variations[previous.next.variations.length - 1]
+        if (prev) {
+            move.prev = prev
+            move.ply = prev.ply + 1
+            if (prev.next) {
+                prev.next.variations.push([])
+                move.variation = prev.next.variations[prev.next.variations.length - 1]
                 move.variation.push(move)
             } else {
-                previous.next = move
-                move.variation = previous.variation
-                previous.variation.push(move)
+                prev.next = move
+                move.variation = prev.variation
+                prev.variation.push(move)
             }
         } else {
             move.variation = this.moves
