@@ -1,0 +1,21 @@
+{
+  "type": "module",
+  "name": "pgn.js",
+  "version": "0.0.1",
+  "description": "Chess PGN, Portable Game Notation, Javascript Library",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "chess",
+    "library",
+    "PGN",
+    "parser"
+  ],
+  "author": "Young-Jo Song <tidynail@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "chess.js": "^1.0.0-alpha.0"
+  }
+}

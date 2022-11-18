@@ -1,0 +1,15 @@
+{
+  "type": "module",
+  "name": "pgnjs-test",
+  "version": "0.0.1",
+  "description": "test pgn.js",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Young-Jo Song <tidynail@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "pgn.js": "file:.."
+  }
+}
