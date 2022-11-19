@@ -17,7 +17,7 @@ pgn
     { var arr = (all ? all : []); arr.unshift(pw);return arr; }
   / pb:pgnStartBlack all:pgnWhite?
     { var arr = (all ? all : []); arr.unshift(pb); return arr; }
-  / whiteSpace?
+  / whiteSpaces
     { return [[]]; }
 
 pgnStartWhite
@@ -27,8 +27,8 @@ pgnStartBlack
   = pb:pgnBlack { return pb; }
 
 pgnWhite
-  = whiteSpace? cp:comment? whiteSpace? mn:moveNumber? whiteSpace? cb:comment? whiteSpace?
-    hm:halfMove  whiteSpace? nag:nags?  whiteSpace? ca:comment? whiteSpace? vari:variationWhite? all:pgnBlack?
+  = whiteSpaces cp:comment? whiteSpaces mn:moveNumber? whiteSpaces cb:comment? whiteSpaces
+    hm:halfMove  whiteSpaces nag:nags?  whiteSpaces ca:comment? whiteSpaces vari:variationWhite? all:pgnBlack?
     { var arr = (all ? all : []);
       var move = {}; move.turn = 'w'; move.num = mn;
       move.text = hm; move.commentPre = cp; move.commentBefore = cb; move.commentAfter = ca;
@@ -36,8 +36,8 @@ pgnWhite
   / endGame
 
 pgnBlack
-  = whiteSpace? cp:comment? whiteSpace? mn:moveNumber? whiteSpace? cb:comment? whiteSpace?
-    hm:halfMove whiteSpace?  nag:nags? whiteSpace? ca:comment? whiteSpace? vari:variationBlack? all:pgnWhite?
+  = whiteSpaces cp:comment? whiteSpaces mn:moveNumber? whiteSpaces cb:comment? whiteSpaces
+    hm:halfMove whiteSpaces  nag:nags? whiteSpaces ca:comment? whiteSpaces vari:variationBlack? all:pgnWhite?
     { var arr = (all ? all : []);
       var move = {}; move.turn = 'b'; move.num = mn;
       move.text = hm; move.commentPre = cp; move.commentBefore = cb; move.commentAfter = ca;
@@ -60,11 +60,11 @@ cl = '{'
 cr = '}'
 
 variationWhite
-  = pl vari:pgnWhite pr whiteSpace? all:variationWhite? whiteSpace? mn:moveNumber?
+  = pl vari:pgnWhite pr whiteSpaces all:variationWhite? whiteSpaces mn:moveNumber?
     { var arr = (all ? all : []); arr.unshift(vari); return arr; }
 
 variationBlack
-  = pl vari:pgnStartBlack pr whiteSpace? all:variationBlack?
+  = pl vari:pgnStartBlack pr whiteSpaces all:variationBlack?
     { var arr = (all ? all : []); arr.unshift(vari); return arr; }
 
 pl = '('
@@ -72,13 +72,17 @@ pl = '('
 pr = ')'
 
 moveNumber
-    = num:integer whiteSpace* "."* { return num; }
+    = num:integer whiteSpaces "."* { return num; }
 
 integer "integer"
     = digits:[0-9]+ { return makeInteger(digits); }
 
+whiteSpaces
+  = whiteSpace*
+
 whiteSpace
-    = " "+ { return '';}
+  = " "
+  / '\n'
 
 halfMove
   = fig:figure? & checkdisc disc:discriminator str:strike?
@@ -99,7 +103,7 @@ promotion
   = '=' f:figure { return '=' + f; }
 
 nags
-  = nag:nag whiteSpace? nags:nags? { var arr = (nags ? nags : []); arr.unshift(nag); return arr; }
+  = nag:nag whiteSpaces nags:nags? { var arr = (nags ? nags : []); arr.unshift(nag); return arr; }
 
 nag
   = '$' num:integer { return '$' + num; }
