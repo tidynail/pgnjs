@@ -30,7 +30,7 @@ pgnWhite
   = whiteSpaces cp:comment? whiteSpaces mn:moveNumber? whiteSpaces cb:comment? whiteSpaces
     hm:halfMove  whiteSpaces nag:nags?  whiteSpaces ca:comment? whiteSpaces vari:variationWhite? all:pgnBlack?
     { var arr = (all ? all : []);
-      var move = {}; move.turn = 'w'; move.num = mn;
+      var move = {}; move.num = mn;
       move.text = hm; move.commentPre = cp; move.commentBefore = cb; move.commentAfter = ca;
       move.vars = (vari ? vari : []); move.nag = (nag ? nag : null); arr.unshift(move); return arr; }
   / endGame
@@ -39,7 +39,7 @@ pgnBlack
   = whiteSpaces cp:comment? whiteSpaces mn:moveNumber? whiteSpaces cb:comment? whiteSpaces
     hm:halfMove whiteSpaces  nag:nags? whiteSpaces ca:comment? whiteSpaces vari:variationBlack? all:pgnWhite?
     { var arr = (all ? all : []);
-      var move = {}; move.turn = 'b'; move.num = mn;
+      var move = {}; move.num = mn;
       move.text = hm; move.commentPre = cp; move.commentBefore = cb; move.commentAfter = ca;
       move.vars = (vari ? vari : []); move.nag = (nag ? nag : null); arr.unshift(move); return arr; }
   / endGame
