@@ -7,9 +7,8 @@ const pgn = new Pgn(`[Site "Berlin"]
 [Black "Maier, Karsten"]
 
 1 .. {b} e4 {c} e5 {d} (e6 {ae}) {e} 2. {f} Nf3    $1      {   'Great move!'     }      Nc6 *`);
-console.log(pgn.render());
 
-pgn.history.moves.forEach((item,idx) => {
+pgn.games[0].moves.forEach((item,idx) => {
   console.log(idx, item.color, item.num);
   console.log(idx, item.comment?.pre, item.comment?.before, item.comment?.after);
   //if(item.variations.length)

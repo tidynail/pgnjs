@@ -7,15 +7,15 @@
 //
 
 {
-    function makeInteger(o) {
-        return parseInt(o.join(""), 10);
-    }
+  function makeInteger(o) {
+    return parseInt(o.join(""), 10);
+  }
 }
 
 pgn
-  = pw:pgnStartWhite all:pgnBlack?
+  = pw:pgnStartWhite all:pgnBlack? whiteSpaces
     { var arr = (all ? all : []); arr.unshift(pw);return arr; }
-  / pb:pgnStartBlack all:pgnWhite?
+  / pb:pgnStartBlack all:pgnWhite? whiteSpaces
     { var arr = (all ? all : []); arr.unshift(pb); return arr; }
   / whiteSpaces
     { return [[]]; }
@@ -41,7 +41,7 @@ pgnBlack
     { var arr = (all ? all : []);
       var move = {}; move.turn = 'b'; move.num = mn;
       move.text = hm; move.commentPre = cp; move.commentBefore = cb; move.commentAfter = ca;
-      move.vars = (vari ? vari : []); arr.unshift(move); move.nag = (nag ? nag : null); return arr; }
+      move.vars = (vari ? vari : []); move.nag = (nag ? nag : null); arr.unshift(move); return arr; }
   / endGame
 
 endGame

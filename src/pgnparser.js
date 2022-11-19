@@ -289,7 +289,7 @@ function peg$parse(input, options) {
   var peg$f6 = function(cp, mn, cb, hm, nag, ca, vari, all) { var arr = (all ? all : []);
       var move = {}; move.turn = 'b'; move.num = mn;
       move.text = hm; move.commentPre = cp; move.commentBefore = cb; move.commentAfter = ca;
-      move.vars = (vari ? vari : []); arr.unshift(move); move.nag = (nag ? nag : null); return arr; };
+      move.vars = (vari ? vari : []); move.nag = (nag ? nag : null); arr.unshift(move); return arr; };
   var peg$f7 = function() { return ["1:0"]; };
   var peg$f8 = function() { return ["0:1"]; };
   var peg$f9 = function() { return ["1-0"]; };
@@ -492,7 +492,7 @@ function peg$parse(input, options) {
   }
 
   function peg$parsepgn() {
-    var s0, s1, s2;
+    var s0, s1, s2, s3;
 
     s0 = peg$currPos;
     s1 = peg$parsepgnStartWhite();
@@ -501,6 +501,7 @@ function peg$parse(input, options) {
       if (s2 === peg$FAILED) {
         s2 = null;
       }
+      s3 = peg$parsewhiteSpaces();
       peg$savedPos = s0;
       s0 = peg$f0(s1, s2);
     } else {
@@ -515,6 +516,7 @@ function peg$parse(input, options) {
         if (s2 === peg$FAILED) {
           s2 = null;
         }
+        s3 = peg$parsewhiteSpaces();
         peg$savedPos = s0;
         s0 = peg$f1(s1, s2);
       } else {
@@ -1890,9 +1892,9 @@ function peg$parse(input, options) {
   }
 
 
-    function makeInteger(o) {
-        return parseInt(o.join(""), 10);
-    }
+  function makeInteger(o) {
+    return parseInt(o.join(""), 10);
+  }
 
   peg$result = peg$startRuleFunction();
 
