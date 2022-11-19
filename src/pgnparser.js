@@ -283,11 +283,11 @@ function peg$parse(input, options) {
   var peg$f3 = function(pw) { return pw; };
   var peg$f4 = function(pb) { return pb; };
   var peg$f5 = function(cp, mn, cb, hm, nag, ca, vari, all) { var arr = (all ? all : []);
-      var move = {}; move.turn = 'w'; move.num = mn;
+      var move = {}; move.num = mn;
       move.text = hm; move.commentPre = cp; move.commentBefore = cb; move.commentAfter = ca;
       move.vars = (vari ? vari : []); move.nag = (nag ? nag : null); arr.unshift(move); return arr; };
   var peg$f6 = function(cp, mn, cb, hm, nag, ca, vari, all) { var arr = (all ? all : []);
-      var move = {}; move.turn = 'b'; move.num = mn;
+      var move = {}; move.num = mn;
       move.text = hm; move.commentPre = cp; move.commentBefore = cb; move.commentAfter = ca;
       move.vars = (vari ? vari : []); move.nag = (nag ? nag : null); arr.unshift(move); return arr; };
   var peg$f7 = function() { return ["1:0"]; };

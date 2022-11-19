@@ -12,7 +12,7 @@ export class Pgn {
    */
   static async load(path, opts = {}) {
     let pgn = new Pgn('', opts);
-    pgn.games = await pgn._from_file(path, options);
+    pgn.games = await pgn._from_file(path, opts);
     return pgn;
   }
 
