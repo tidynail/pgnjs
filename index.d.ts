@@ -1,6 +1,18 @@
 declare module "pgn.js" {
 
-export interface move {
+export type Games = Game[];
+
+export interface Game {
+  tags: Tag[];
+  moves: Move[];
+};
+
+export interface Tag {
+  name: string,
+  value: string,
+}
+
+export interface Move {
   // from chess.js
   color: string, /* 'w', 'b' */
   from: string,
@@ -24,7 +36,7 @@ export interface move {
   num: number,            // move number, not ply
   fen: string,
 
-  comment? : {
+  comment?: {
     pre?: string,         // comment before move number
     before?: string,      // comment before san
     after?: string        // comment after san and nag
@@ -33,9 +45,20 @@ export interface move {
 
   vars?: move[][],
 
+  // status
+  over?: {
+    mate?: boolean,       // checkmate
+    draw?: string,        // stale, 3fold, fifty, material
+  },
+  check?: boolean,        // check by this move
+
   ply: number,
   next: move,
   prev: move,
-}
+};
+
+export interface Options {
+  sloppy?: boolean;
+};
 
 }

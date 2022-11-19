@@ -1,63 +1,116 @@
-import { parse } from "./pgnparser.js"
-import { Chess } from "chess.js"
+import { createReadStream } from 'node:fs';
+import { createInterface } from 'node:readline';
+
+import { parse } from './pgnparser.js';
+import { Chess } from 'chess.js';
 
 export class Pgn {
-  constructor(pgn = '', options = {}) {
-    this.games = this._from_pgn(pgn, options);
+  /**
+   * @param {string} path
+   * @param {Options} opts
+   * @return {Pgn} pgn
+   */
+  static async load(path, opts = {}) {
+    let pgn = new Pgn('', opts);
+    pgn.games = await pgn._from_file(path, options);
+    return pgn;
   }
 
-  _from_pgn(pgn = '', options = {}) {
-    const sloppy = !!options.sloppy;
+  /**
+   * @param {string} pgn
+   * @param {Options} opts
+   */
+  constructor(pgn = '', opts = {}) {
+    this.games = this._from_pgn(pgn, opts);
+  }
+
+  _from_pgn(pgn = '', opts = {}) {
+    const sloppy = !!opts.sloppy;
     const lines = pgn.split('\n');
-    let in_movetext = false;
-    let movetext = '';
 
-    let games = [];
-    let game = { tags: [], moves: []};  // current game
-    for(const line of lines) {
-      const has_tag = line.trimStart().startsWith('[');
-      if(in_movetext) {
-        if(has_tag) {
-          // parse movetext
-          if(game.tags.length) {
-            let fen = game.tags.find(tag => tag.name.toUpperCase() == 'FEN')?.value;
-            game.moves = this._parse_movetext(movetext, fen, sloppy);
-            games.push(game);
+    let ctx = {
+      games: [],  // parsed games
+      game: { tags: [], moves: []},  // current game
+      in_movetext: false, // line parsing status whether 'in movetext'
+      movetext: '', // current collecting movetext
+    };
 
-            game = { tags: [], moves: []}; 
-          }
-          in_movetext = false;
-          movetext = '';
+    for(const line of lines) {      
+      this._handle_line(ctx, line + '\n', sloppy);
+    }
+
+    return ctx.games;
+  }
+
+  async _from_file(path, opts = {}) {
+    const sloppy = !!opts.sloppy;
+    const fileStream = createReadStream(path);
+  
+    const rl = createInterface({
+      input: fileStream,
+      crlfDelay: Infinity
+    });
+    // Note: we use the crlfDelay option to recognize all instances of CR LF
+    // ('\r\n') in input.txt as a single line break.
+
+    let ctx = {
+      games: [],  // parsed games
+      game: { tags: [], moves: []},  // current game
+      in_movetext: false, // line parsing status whether 'in movetext'
+      movetext: '', // current collecting movetext
+    };
+
+    for await (const line of rl) {
+      if(line)
+        await this._handle_line(ctx, line, sloppy);
+    }
+
+    return ctx.games;
+  }
+
+  async _handle_line(ctx, line, sloppy) {
+    const has_tag = line.trimStart().startsWith('[');
+    if(ctx.in_movetext) {
+      if(has_tag) {
+        // parse movetext
+        if(ctx.game.tags.length) {
+          let fen = ctx.game.tags.find(tag => tag.name.toUpperCase() == 'FEN')?.value;
+          ctx.game.moves = this._parse_movetext(ctx.movetext, fen, sloppy);
+          ctx.games.push(ctx.game);
+
+          ctx.game = { tags: [], moves: []}; // next cur game
         }
-        else {
-          movetext += line + '\n';
+        ctx.in_movetext = false;
+        ctx.movetext = '';
+      }
+      else {
+        ctx.movetext += line;
+      }
+    }
+    else {
+      if(has_tag) {
+        // parse tag
+        let tag = line.match(/\[(\w+)\s+"([^"]+)"/);
+        if (tag) {
+          ctx.game.tags.push({ name: tag[1], value: tag[2] });
         }
       }
       else {
-        if(has_tag) {
-          // parse tag
-          let tag = line.match(/\[(\w+)\s+"([^"]+)"/);
-          if (tag) {
-            game.tags.push({ name: tag[1], value: tag[2] });
-          }
-        }
-        else {
-          movetext = line + '\n';
-          in_movetext = true;
-        }
+        // collect movetext
+        ctx.movetext = line;
+        ctx.in_movetext = true;
       }
     }
 
     // last movetext
-    if(in_movetext) {
+    if(ctx.in_movetext) {
       // parse movetext
-      if(game.tags.length) {
-        let fen = game.tags.find(tag => tag.name.toUpperCase() == 'FEN')?.value;
-        game.moves = this._parse_movetext(movetext, fen, sloppy);
-        games.push(game);
+      if(ctx.game.tags.length) {
+        let fen = ctx.game.tags.find(tag => tag.name.toUpperCase() == 'FEN')?.value;
+        ctx.game.moves = this._parse_movetext(ctx.movetext, fen, sloppy);
+        ctx.games.push(ctx.game);
       }
     }
-    return games;
   }
 
   _parse_movetext(movetext, fen = '', sloppy = false) {
@@ -130,25 +183,23 @@ export class Pgn {
     move.fen = chess.fen()
     move.vars = []
     if (chess.isGameOver()) {
-      move.gameOver = true
-      if (chess.inDraw()) {
-        move.inDraw = true
+      move.over = {}
+      if (chess.isCheckmate()) {
+        move.over.mate = true;
       }
-      if (chess.InStalemate()) {
-        move.inStalemate = true
-      }
-      if (chess.insufficientMaterial()) {
-        move.insufficientMaterial = true
-      }
-      if (chess.inThreefoldRepetition()) {
-        move.inThreefoldRepetition = true
-      }
-      if (chess.inCheckmate()) {
-        move.inCheckmate = true
+      else if (chess.isDraw()) {
+        if (chess.isStalemate())
+          move.over.draw = 'stale';
+        else if (chess.isInsufficientMaterial())
+          move.over.draw = 'material';
+        else if (chess.isThreefoldRepetition())
+          move.over.draw = '3fold';
+        else
+          move.over.draw = 'fifty';
       }
     }
-    if (chess.inCheck()) {
-      move.inCheck = true
+    if (chess.isCheck()) {
+      move.check = true
     }
   }
 }
