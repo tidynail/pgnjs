@@ -147,17 +147,17 @@ export class Pgn {
           if (parsedMove.nag) {
             move.nag = parsedMove.nag[0]
           }
-          if(parsedMove.commentPre||parsedMove.commentBefore||parsedMove.commentAfter)
+          if(parsedMove.comment_pre||parsedMove.comment_before||parsedMove.comment_after)
           {
             move.comment = {};
-            if (parsedMove.commentPre) {
-              move.comment.pre = parsedMove.commentPre
+            if (parsedMove.comment_pre) {
+              move.comment.pre = parsedMove.comment_pre
             }
-            if (parsedMove.commentBefore) {
-              move.comment.before = parsedMove.commentBefore
+            if (parsedMove.comment_before) {
+              move.comment.before = parsedMove.comment_before
             }
-            if (parsedMove.commentAfter) {
-              move.comment.after = parsedMove.commentAfter
+            if (parsedMove.comment_after) {
+              move.comment.after = parsedMove.comment_after
             }
           }
           move.vars = []

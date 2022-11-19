@@ -7,44 +7,35 @@
 //
 
 {
-  function makeInteger(o) {
+  function toInt(o) {
     return parseInt(o.join(""), 10);
   }
 }
 
 pgn
-  = pw:pgnStartWhite all:pgnBlack? whiteSpaces
-    { var arr = (all ? all : []); arr.unshift(pw); return arr; }
-  / pb:pgnStartBlack all:pgnWhite? whiteSpaces
-    { var arr = (all ? all : []); arr.unshift(pb); return arr; }
-  / whiteSpaces
-    { return [[]]; }
+  = move:move rest:move? ws_
+    { var arr = (rest ? rest : []); 
+      arr.unshift(move);
+      return arr; }
+  / ws_
+    { return []; }
 
-pgnStartWhite
-  = pw:pgnWhite { return pw; }
+move
+  = ws_ c_pre:comment? ws_ num:mvnum? ws_ c_before:comment? ws_
+    text:san  ws_ nag:nags?  ws_ c_after:comment? ws_ rav:rav? rest:move?
+    { var arr = (rest ? rest : []);
+      var move = {}; 
+      move.num = num;
+      move.text = text;
+      move.comment_pre = c_pre; 
+      move.comment_before = c_before; 
+      move.comment_after = c_after;
+      move.vars = (rav ? rav : []); 
+      move.nag = (nag ? nag : null); 
+      arr.unshift(move); return arr; }
+  / game_terminal_marker
 
-pgnStartBlack
-  = pb:pgnBlack { return pb; }
-
-pgnWhite
-  = whiteSpaces cp:comment? whiteSpaces mn:moveNumber? whiteSpaces cb:comment? whiteSpaces
-    hm:halfMove  whiteSpaces nag:nags?  whiteSpaces ca:comment? whiteSpaces vari:variationWhite? all:pgnBlack?
-    { var arr = (all ? all : []);
-      var move = {}; move.num = mn;
-      move.text = hm; move.commentPre = cp; move.commentBefore = cb; move.commentAfter = ca;
-      move.vars = (vari ? vari : []); move.nag = (nag ? nag : null); arr.unshift(move); return arr; }
-  / endGame
-
-pgnBlack
-  = whiteSpaces cp:comment? whiteSpaces mn:moveNumber? whiteSpaces cb:comment? whiteSpaces
-    hm:halfMove whiteSpaces  nag:nags? whiteSpaces ca:comment? whiteSpaces vari:variationBlack? all:pgnWhite?
-    { var arr = (all ? all : []);
-      var move = {}; move.num = mn;
-      move.text = hm; move.commentPre = cp; move.commentBefore = cb; move.commentAfter = ca;
-      move.vars = (vari ? vari : []); move.nag = (nag ? nag : null); arr.unshift(move); return arr; }
-  / endGame
-
-endGame
+game_terminal_marker
   = "1:0" { return ["1:0"]; }
   / "0:1" { return ["0:1"]; }
   / "1-0" { return ["1-0"]; }
@@ -53,45 +44,35 @@ endGame
   / "*"  { return ["*"]; }
 
 comment
-  = cl cm:[^}]* cr { return cm.join("").trim(); }
+  = '{' cmt:[^}]* '}' { return cmt.join("").trim(); }
 
-cl = '{'
+rav
+  = '(' rav:move ')' ws_ rest:rav? ws_ num:mvnum?
+    { var arr = (rest ? rest : []); arr.unshift(rav); return arr; }
 
-cr = '}'
-
-variationWhite
-  = pl vari:pgnWhite pr whiteSpaces all:variationWhite? whiteSpaces mn:moveNumber?
-    { var arr = (all ? all : []); arr.unshift(vari); return arr; }
-
-variationBlack
-  = pl vari:pgnStartBlack pr whiteSpaces all:variationBlack?
-    { var arr = (all ? all : []); arr.unshift(vari); return arr; }
-
-pl = '('
-
-pr = ')'
-
-moveNumber
-    = num:integer whiteSpaces "."* { return num; }
+mvnum
+    = num:integer ws_ "."* { return num; }
 
 integer "integer"
-    = digits:[0-9]+ { return makeInteger(digits); }
+    = digits:[0-9]+ { return toInt(digits); }
 
-whiteSpaces
-  = whiteSpace*
+ws_
+  = ws*
 
-whiteSpace
-  = " "
+ws
+  = ' '
+  / '\t'
+  / '\r'
   / '\n'
 
-halfMove
-  = fig:figure? & checkdisc disc:discriminator str:strike?
+san
+  = piece:piece? & checkdisc disc:discriminator capture:capture?
     col:column row:row pr:promotion? ch:check?
-    { var hm = {}; hm.fig = (fig ? fig : null); hm.disc =  (disc ? disc : null); hm.strike = (str ? str : null); hm.col = col; hm.row = row; hm.check = (ch ? ch : null); hm.promotion = pr; hm.san = (fig ? fig : "") + (disc ? disc : "") + (str ? str : "") + col + row + (pr ? pr : "") + (ch ? ch : ""); return hm; }
-  / fig:figure? cols:column rows:row str:strikeOrDash? col:column row:row pr:promotion? ch:check?
-    { var hm = {}; hm.fig = (fig ? fig : null); hm.strike = (str =='x' ? str : null); hm.col = col; hm.row = row; hm.check = (ch ? ch : null); hm.san = (fig && (fig!=='P') ? fig : "") + cols + rows + (str=='x' ? str : "-") + col  + row + (pr ? pr : "") + (ch ? ch : ""); hm.promotion = pr; return hm; }
-  / fig:figure? str:strike? col:column row:row pr:promotion? ch:check?
-    { var hm = {}; hm.fig = (fig ? fig : null); hm.strike = (str ? str : null); hm.col = col; hm.row = row; hm.check = (ch ? ch : null); hm.san = (fig ? fig : "") + (str ? str : "") + col  + row + (pr ? pr : "") + (ch ? ch : ""); hm.promotion = pr; return hm; }
+    { var hm = {}; hm.piece = (piece ? piece : null); hm.disc =  (disc ? disc : null); hm.capture = (capture ? capture : null); hm.col = col; hm.row = row; hm.check = (ch ? ch : null); hm.promotion = pr; hm.san = (piece ? piece : "") + (disc ? disc : "") + (capture ? capture : "") + col + row + (pr ? pr : "") + (ch ? ch : ""); return hm; }
+  / piece:piece? cols:column rows:row capture:capture_or_dash? col:column row:row pr:promotion? ch:check?
+    { var hm = {}; hm.piece = (piece ? piece : null); hm.capture = (capture =='x' ? capture : null); hm.col = col; hm.row = row; hm.check = (ch ? ch : null); hm.san = (piece && (piece!=='P') ? piece : "") + cols + rows + (capture=='x' ? capture : "-") + col  + row + (pr ? pr : "") + (ch ? ch : ""); hm.promotion = pr; return hm; }
+  / piece:piece? capture:capture? col:column row:row pr:promotion? ch:check?
+    { var hm = {}; hm.piece = (piece ? piece : null); hm.capture = (capture ? capture : null); hm.col = col; hm.row = row; hm.check = (ch ? ch : null); hm.san = (piece ? piece : "") + (capture ? capture : "") + col  + row + (pr ? pr : "") + (ch ? ch : ""); hm.promotion = pr; return hm; }
   / 'O-O-O' ch:check? { var hm = {}; hm.san = 'O-O-O'+ (ch ? ch : ""); hm.check = (ch ? ch : null); return  hm; }
   / 'O-O' ch:check? { var hm = {}; hm.san = 'O-O'+ (ch ? ch : ""); hm.check = (ch ? ch : null); return  hm; }
 
@@ -100,10 +81,10 @@ check
   / ch:(! '$$$' '#') { return ch[1]; }
 
 promotion
-  = '=' f:figure { return '=' + f; }
+  = '=' f:piece { return '=' + f; }
 
 nags
-  = nag:nag whiteSpaces nags:nags? { var arr = (nags ? nags : []); arr.unshift(nag); return arr; }
+  = nag:nag ws_ rest:nags? { var arr = (rest ? rest : []); arr.unshift(nag); return arr; }
 
 nag
   = '$' num:integer { return '$' + num; }
@@ -137,11 +118,10 @@ discriminator
   = column
   / row
 
-
 checkdisc
-  = discriminator strike? column row
+  = discriminator capture? column row
 
-figure
+piece
   = [RNBQKP]
 
 column
@@ -150,9 +130,9 @@ column
 row
   = [1-8]
 
-strike
+capture
   = 'x'
 
-strikeOrDash
+capture_or_dash
   = 'x'
   / '-'
