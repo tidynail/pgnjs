@@ -14,7 +14,7 @@
 
 pgn
   = pw:pgnStartWhite all:pgnBlack? whiteSpaces
-    { var arr = (all ? all : []); arr.unshift(pw);return arr; }
+    { var arr = (all ? all : []); arr.unshift(pw); return arr; }
   / pb:pgnStartBlack all:pgnWhite? whiteSpaces
     { var arr = (all ? all : []); arr.unshift(pb); return arr; }
   / whiteSpaces
