@@ -6,7 +6,7 @@
 import { Header, TAGS } from "./header.js"
 import { History } from "./history.js"
 
-export default class Pgn {
+export class Pgn {
     constructor(pgnString = "", props = {}) {
         // only the header?
         const lastHeaderElement =  pgnString.trim().substr(-1) === "]" ? pgnString.length : pgnString.lastIndexOf("]\n\n") + 1

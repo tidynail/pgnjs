@@ -1,3 +1,4 @@
-pgjs
-test
+*.pegjs
+sample
 .gitignore
+.vscode

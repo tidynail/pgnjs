@@ -23,5 +23,8 @@
   "license": "MIT",
   "dependencies": {
     "chess.js": "^1.0.0-alpha.0"
+  },
+  "devDependencies": {
+    "peggy": "^2.0.1"
   }
 }

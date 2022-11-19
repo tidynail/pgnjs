@@ -21,17 +21,19 @@ export interface move {
   promotion?: string,
 
   // extends
-  ply: number,
+  num: number,            // move number, not ply
   fen: string,
 
-  nag?: string,
-  commentBefore?: string,
-  commentMove?: string,
-  commentAfter?: string,
+  comment? : {
+    pre?: string,         // comment before move number
+    before?: string,      // comment before san
+    after?: string        // comment after san and nag
+  },
+  nag?: string,           // $<number>
 
-  variation?: move[],
-  variations?: varation[],
+  vars?: move[][],
 
+  ply: number,
   next: move,
   prev: move,
 }
