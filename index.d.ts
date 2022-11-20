@@ -54,8 +54,25 @@ export interface Move {
 };
 
 export interface Options {
-  onGame: (game: Game) => void,
+  verbose: boolean, // print error messag
+  onGame: (game: Game, error: Error) => void,
   onFinish: () => void,
 };
 
-}
+export interface Error {
+  msg?: string,
+  fen?: string,
+  san?: string,
+  num?: number,
+  movetext?: string,
+
+  // from parser
+  found?: string,   // unexpected token
+  location: {
+    start: { offset: number, line: number, column: number},
+    end: { offset: number, line: number, column: number}
+  }    
+};
+
+} // declare module
+

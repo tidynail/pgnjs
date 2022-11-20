@@ -1,14 +1,13 @@
 # pgn.js
 
-Chess PGN, Portable Game Notation, Javascript Library
+Chess PGN, [Portable Game Notation](http://www.saremba.de/chessgml/standards/pgn/pgn-complete.htm), Javascript Library
 
-# Forked cm-pgn
+# Why Another?
 
-At the moment, it's a forked [cm-pgn](https://github.com/shaack/cm-pgn), changes are:
+1. multiple games parsing and generation
+2. comprehensive, all comments and variations
+3. sync for CLI use, async for large file handling
+4. single dependency [chess.js](https://github.com/jhlywa/chess.js), exported again
 
-1. recognized as ES6 module by Node.js
-2. removed [modlib](https://github.com/shaack/modlib) dependency
-3. removed [chess.mjs](https://github.com/shaack/chess.mjs) dependency
-4. instead use the latest [chess.js](https://github.com/jhlywa/chess.js)
+# Simple Parsing
 
-May have more changes.

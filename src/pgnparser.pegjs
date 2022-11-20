@@ -53,11 +53,13 @@ rav
     { var arr = []; return arr; }
 
 mvnum
-    = num:integer ws_ "."* { return num; }
+    = num:number { return num; }
 
-integer "integer"
-    = digits:[0-9]+ { return toInt(digits); }
+number
+    = first:nonzero digits:[0-9]* { digits.unshift(first); return toInt(digits); }
 
+nonzero
+    = digit:[1-9] { return digit; }
 ws_
   = ws*
 
@@ -66,15 +68,19 @@ ws
   / '\t'
   / '\r'
   / '\n'
+  / ','
+  / '.'
 
 san
-  = piece:piece? & checkdisc disc:discriminator capture:capture?
+  = 'O-O-O' ch:check? { var san = {}; san.san = 'O-O-O'+ (ch ? ch : ""); san.check = (ch ? ch : null); return  san; }
+  / 'O-O' ch:check? { var san = {}; san.san = 'O-O'+ (ch ? ch : ""); san.check = (ch ? ch : null); return  san; }
+  / '0-0-0' ch:check? { var san = {}; san.san = 'O-O-O'+ (ch ? ch : ""); san.check = (ch ? ch : null); return  san; }
+  / '0-0' ch:check? { var san = {}; san.san = 'O-O'+ (ch ? ch : ""); san.check = (ch ? ch : null); return  san; }
+  / piece:piece? & checkdisc disc:discriminator capture:capture?
     col:column row:row pr:promotion? ch:check?
     { var san = {}; san.piece = (piece ? piece : null); san.disc =  (disc ? disc : null); san.capture = (capture ? capture : null); san.col = col; san.row = row; san.check = (ch ? ch : null); san.promotion = pr; san.san = (piece ? piece : "") + (disc ? disc : "") + (capture ? capture : "") + col + row + (pr ? pr : "") + (ch ? ch : ""); return san; }
   / piece:piece? capture:capture? col:column row:row pr:promotion? ch:check?
     { var san = {}; san.piece = (piece ? piece : null); san.capture = (capture ? capture : null); san.col = col; san.row = row; san.check = (ch ? ch : null); san.san = (piece ? piece : "") + (capture ? capture : "") + col  + row + (pr ? pr : "") + (ch ? ch : ""); san.promotion = pr; return san; }
-  / 'O-O-O' ch:check? { var san = {}; san.san = 'O-O-O'+ (ch ? ch : ""); san.check = (ch ? ch : null); return  san; }
-  / 'O-O' ch:check? { var san = {}; san.san = 'O-O'+ (ch ? ch : ""); san.check = (ch ? ch : null); return  san; }
 
 check
   = ch:(! '+-' '+') { return ch[1]; }
@@ -87,7 +93,7 @@ nags
   = nag:nag ws_ rest:nags? { var arr = (rest ? rest : []); arr.unshift(nag); return arr; }
 
 nag
-  = '$' num:integer { return '$' + num; }
+  = '$' num:number { return '$' + num; }
   / '!!' { return '$3'; }
   / '??' { return '$4'; }
   / '!?' { return '$5'; }

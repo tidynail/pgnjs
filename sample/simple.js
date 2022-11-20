@@ -3,8 +3,18 @@ const pgn = new Pgn(
 `[Site "Toronto"]
 [Date "2022.11.17"]
 
-1 .. {comment before} e4 {comment after} e5 { comment black after } (e6 { variation comment} ) {commentt pre move} 2. {comment before 2nd} Nf3    $1      {   'Great move!'     }      Nc6 *`);
-
+01 .. {comment before1} e4 {comment after1} 
+ e5 { comment after2 } (e6 {variation comment} ) {comment pre3} 2. {comment before3} Nf3    $1      {   'Great move!'     }      Nc6 *`, {onGame: (game, err) => {
+  if(err) {
+    game.tags.push({name: 'pgn.js', value: 'parsing error encountered'});
+    if(err.location) {
+      console.log('found:', err.found, ' at ', err.location, ' with movetext: ', err.movetext)
+    } else {
+      console.log(err);
+    }
+  }
+}});
+/*
 const pgn2 = new Pgn(
 `[Event "?"]
 [Site "?"]
@@ -43,4 +53,4 @@ const pgn3 = new Pgn(
 
   //const pgn5 = await Pgn.load('./pgn/polgar5334.pgn');
   //console.log(pgn5.pgn());
-  
+  */

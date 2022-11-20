@@ -51,6 +51,7 @@ export class Pgn {
 
   _from_pgn(pgn = '', opts = {}) {
     const lines = pgn.split('\n');
+    const verbose = !!opts?.verbose;
 
     let ctx = {
       games: [],  // parsed games
@@ -67,11 +68,12 @@ export class Pgn {
     if(ctx.in_movetext) {
       // parse movetext
       if(ctx.game.tags.length) {
-        ctx.game.moves = this._parse_movetext(ctx.movetext, ctx.game.setupFen());
+        ctx.game.moves = [];
+        let err = this._parse_movetext(ctx.game.moves, ctx.movetext, ctx.game.setupFen(), verbose);
         ctx.games.push(ctx.game);
 
         if(opts?.onGame)
-          opts.onGame(ctx.game);
+          opts.onGame(ctx.game, err);
       }
     }
 
@@ -83,6 +85,7 @@ export class Pgn {
 
   async _from_file(path, opts = {}) {
     const fileStream = createReadStream(path);
+    const verbose = !!opts?.verbose;
   
     const rl = createInterface({
       input: fileStream,
@@ -100,18 +103,19 @@ export class Pgn {
 
     for await (const line of rl) {
       if(line)
-        await this._handle_line(ctx, line, opts);
+        await this._handle_line(ctx, line + '\n', opts);
     }
 
     // last movetext
     if(ctx.in_movetext) {
       // parse movetext
       if(ctx.game.tags.length) {
-        ctx.game.moves = this._parse_movetext(ctx.movetext, ctx.game.setupFen());
+        ctx.game.moves = [];
+        let err = this._parse_movetext(ctx.game.moves, ctx.movetext, ctx.game.setupFen(), verbose);
         ctx.games.push(ctx.game);
 
         if(opts?.onGame)
-          opts.onGame(ctx.game);
+          opts.onGame(ctx.game, err);
       }
     }
 
@@ -122,16 +126,18 @@ export class Pgn {
   }
 
   async _handle_line(ctx, line, opts) {
+    const verbose = !!opts?.verbose;
     const has_tag = line.trimStart().startsWith('[');
     if(ctx.in_movetext) {
       if(has_tag) {
         // parse movetext
         if(ctx.game.tags.length) {
-          ctx.game.moves = this._parse_movetext(ctx.movetext, ctx.game.setupFen());
+          ctx.game.moves = [];
+          let err = this._parse_movetext(ctx.game.moves, ctx.movetext, ctx.game.setupFen(), verbose);
           ctx.games.push(ctx.game);
 
           if(opts?.onGame)
-            opts.onGame(ctx.game);
+            opts.onGame(ctx.game, err);
 
           ctx.game = new Game(); // next cur game
         }
@@ -164,18 +170,33 @@ export class Pgn {
     }
   }
 
-  _parse_movetext(movetext, fen = '') {
-    let moves = [];
+  _parse_movetext(moves, movetext, fen = '', verbose) {
+    let err = undefined;
     try{
       const parsed_moves = parse(movetext);  // syntax parse
-      return this._make_moves(moves, parsed_moves[0], fen, undefined, 1);
-    } catch(err) {
-      console.error('parse error:',movetext);
-      throw err;
+      err = this._make_moves(moves, parsed_moves[0], fen, undefined, 1);
+      if(err) {
+        // error
+        err.movetext = movetext;
+        if(verbose) {
+          console.error('error', err);
+        }
+      }
+    } catch(e) {
+      // exception from parser
+      err = e;
+      err.movetext = movetext;
+      if(verbose) {
+        console.error('error', err);
+      }
     }
+    return err;
   }
 
-  _make_moves(parent, parsed_moves, fen, prev_move = undefined, ply = 1) {
+  /**
+   * @return {error}
+   */
+  _make_moves(parent, parsed_moves, fen, prev_move, ply) {
     const chess = fen ? new Chess(fen) : new Chess()
     let moves = parent;
     for (let parsed_move of parsed_moves) {
@@ -221,17 +242,26 @@ export class Pgn {
             const lastFen = moves.length > 0 ? moves[moves.length - 1].fen : fen
             for (let parsedVar of parsedVars) {
               let rav = [];
-              move.vars.push(this._make_moves(rav, parsedVar, lastFen, prev_move, ply))
+              let err = this._make_moves(rav, parsedVar, lastFen, prev_move, ply);
+              if(rav.length>0)
+                move.vars.push(rav);
+              if(err)
+                return err;
             }
           }
           moves.push(move)
           prev_move = move
         } else {
-          throw "IllegalMoveException: " + chess.fen() + " + " + san;
+          return {
+            msg: 'Illegal move',
+            fen: chess.fen(),
+            san: san,
+            num: prev_move?.num
+          };
         }
       }
       ply++;
     }
-    return moves;
+    return undefined;
   }
 };
