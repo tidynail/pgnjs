@@ -41,6 +41,15 @@ export class Pgn {
     return (idx>=0&&idx<this.games.length?this.games[idx]:null);
   }
 
+  /**
+   * @return {Game}
+   */
+  newgame() {
+    let game = new Game();
+    this.games.push(game);
+    return game;
+  }
+
   pgn() {
     let text = '';
     this.games.forEach(game => {

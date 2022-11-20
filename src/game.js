@@ -47,6 +47,34 @@ export class Game {
     return this.tags.find(tag => tag.name.toUpperCase() == 'FEN')?.value;
   }
 
+  /**
+   * @param {string} fen
+   */
+  setFen(fen) {
+    this.delTag('FEN');
+    this.delTag('SetUp');
+    this.tags.push({name: 'FEN', value: fen});
+    this.tags.push({name: 'SetUp', value: '1'});
+  }
+
+  /**
+   * @param {string} name
+   * @param {string} value
+   */
+  setTag(_name, _value) {
+    this.delTag(_name);
+    this.tags.push({name: _name, value: _value});
+  }
+
+  /**
+   * @param {string} name 
+   */
+  delTag(_name) {
+    const i = this.tags.findIndex(tag => {return tag.name.toUpperCase()==_name.toUpperCase();});
+    if(i>=0)
+      this.tags.splice(i,1);
+  }
+
   pgn() {
     let ctx = { out: '', line: '', indent: 0,
       at$: function() { return (this.line.length<=this.indent); },
@@ -63,6 +91,11 @@ export class Game {
       if(!STDTAGS.find(item => {item == tag.name}))
         ctx.out += `[${tag.name} "${tag.value}"]\n`;
     });
+
+    if(this.tags.length==0) {
+      // default tag
+      ctx.out += '[Event "?"]\n';
+    }
 
     ctx.out += '\n';
 
@@ -91,6 +124,7 @@ export class Game {
   _moves_to_pgn(ctx, moves) {
     let firstmove = true;
     let white_had_comment = false;
+    let white_had_variation = false;
     moves.forEach(move => {
 
       if(move.comment&&move.comment.pre) {
@@ -100,7 +134,8 @@ export class Game {
 
       if(move.color=='w' || firstmove ||
          (move.color=='b'&&move.comment&&(move.comment.pre||move.comment.before))||
-         (move.color=='b'&&white_had_comment)) {
+         (move.color=='b'&&white_had_comment) ||
+         (move.color=='b'&&white_had_variation)) {
 
         ctx.delimit(' ');
         ctx.line += (move.color=='w'?`${move.num}.`:`${move.num}...`);
@@ -158,6 +193,7 @@ export class Game {
       }
 
       white_had_comment = (move.color=='w'&&move.comment&&move.comment.after);
+      white_had_variation = (move.color=='w'&&move.vars?.length>0);
       firstmove = false;
     });
   }
@@ -212,7 +248,36 @@ export class Game {
    * @param {Move?} prev first move if null
    * @return {Move | null}
    */
-  main(san, prev = undefined) {
+   main(san, prev = undefined) {
+    let line = prev?prev.line:this.moves;
+    let iprev = prev?line.indexOf(prev):-1;
+
+    let move = this._make_move(san, prev);
+    if(!move)
+      return null;
+
+    let rav = line.splice(iprev+1);
+    rav.forEach(move => {move.line = rav;});
+
+    move.vars=[];
+    move.vars.push(rav);
+
+    // move all varations
+    while(rav[0].vars?.length)
+      move.vars.push(rav[0].vars.shift());
+
+    move.line = line;
+    line.push(move);
+    return move;
+  }
+
+  /**
+   * as the very next variation
+   * @param {string} san
+   * @param {Move?} prev first move if null
+   * @return {Move | null}
+   */
+  next(san, prev = undefined) {
     let line =prev?prev.line:this.moves;
     let iprev = prev?line.indexOf(prev):-1;
     let oldmove = line[iprev+1];
@@ -232,33 +297,6 @@ export class Game {
   }
 
   /**
-   * as the very next variation
-   * @param {string} san
-   * @param {Move?} prev first move if null
-   * @return {Move | null}
-   */
-   nextvar(san, prev = undefined) {
-    let line = prev?prev.line:this.moves;
-    let iprev = prev?line.indexOf(prev):-1;
-
-    let move = this.append(san, line);
-    if(!move)
-      return null;
-
-    let rav = line.splice(iprev+1);
-    rav.forEach(move => {move.line = rav;});
-
-    move.vars=[];
-    move.vars.push(rav);
-
-    // move all varations
-    while(rav[0].vars.length)
-      move.vars.push(rav[0].vars.shift());
-
-    return move;
-  }
-
-  /**
    * no variation, overwrite
    * @param {string} san
    * @param {Move?} prev first move if null
@@ -268,7 +306,7 @@ export class Game {
     let line = prev?prev.line:this.moves;
     let iprev = prev?line.indexOf(prev):-1;
     line.splice(iprev+1);
-    return this.append(san, line);
+    return this.move(san, line);
   }
 
   _make_move(san, prev) {

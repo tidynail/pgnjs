@@ -5,7 +5,7 @@ export type Games = Game[];
 export interface Tag {
   name: string,
   value: string,
-}
+};
 
 export interface Move {
   // from chess.js
@@ -27,7 +27,7 @@ export interface Move {
   captured?: string,
   promotion?: string,
 
-  // extends
+  // extends by pgn.js
   num: number,            // move number, not ply
   fen: string,
   uci: string,            // uci long algebraic notation
@@ -54,7 +54,7 @@ export interface Move {
 };
 
 export interface Options {
-  verbose: boolean, // print error messag
+  verbose: boolean, // print error message
   onGame: (game: Game, error: Error) => void,
   onFinish: () => void,
 };
