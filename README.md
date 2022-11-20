@@ -342,7 +342,7 @@ export interface Move {
 
 ## Tag
 
-```js
+```ts
 export interface Tag {
   name: string,
   value: string,
