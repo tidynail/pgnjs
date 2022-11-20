@@ -24,5 +24,10 @@ export class Util {
       move.check = true
     }
   }
+
+  static move_num_from_fen(fen) {
+    const tokens = fen?.split(/\s+/)
+    return (tokens&&tokens.length>5)?parseInt(tokens[5]):1; 
+  }
 };
 

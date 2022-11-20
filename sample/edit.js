@@ -9,12 +9,15 @@ const pgn = new Pgn(
 
   let game = pgn.game(0);
   let mv = game.move('Rxf8');
-  game.add('Nd3', mv.prev);
+  game.var('Nd3', mv.prev);
 
-  let v1 = game.add('N8d7', null).line;
-  let v2 = game.add('Nc6', null).line;
+  let vm = game.var('N8d7', null);
+  game.var('Nc6', null);
 
-  game.move('Nxd7', v1);
-  game.move('Qxe4', v1);
+  mv = game.move('Nxd7', vm.line);
+  game.move('Qxe4', vm.line);
+  vm = game.var('Nf7', mv.prev);
+  game.move('Qd5', vm.line);
+  game.move('Nh6', vm.line);
 
   console.log(game.pgn());

@@ -48,7 +48,11 @@ export class Game {
   }
 
   pgn() {
-    let ctx = { out: '', line: '', indent: 0 };
+    let ctx = { out: '', line: '', indent: 0,
+      at$: function() { return (this.line.length<=this.indent); },
+      delimit: function(s) { if(!this.at$()) ctx.line += ' '; },
+    };
+
     STDTAGS.forEach(stdtag => {
       let value = this.tags.find(item => {item.name == stdtag})?.value;
       if(value)
@@ -89,35 +93,46 @@ export class Game {
     let white_had_comment = false;
     moves.forEach(move => {
 
-      if(move.comment&&move.comment.pre)
-        ctx.line += (ctx.line.length>ctx.indent?' ':'') + `{ ${move.comment.pre} }`;
+      if(move.comment&&move.comment.pre) {
+        ctx.delimit(' ');
+        ctx.line += `{ ${move.comment.pre} }`;
+      }
 
       if(move.color=='w' || firstmove ||
          (move.color=='b'&&move.comment&&(move.comment.pre||move.comment.before))||
          (move.color=='b'&&white_had_comment)) {
 
-        ctx.line += (ctx.line.length>ctx.indent?' ':'') + (move.color=='w'?`${move.num}.`:`${move.num}...`);
+        ctx.delimit(' ');
+        ctx.line += (move.color=='w'?`${move.num}.`:`${move.num}...`);
 
-        if(move.comment&&move.comment.before)
-          ctx.line += (ctx.line.length>ctx.indent?' ':'') + `{ ${move.comment.before} } `;
+        if(move.comment&&move.comment.before) {
+          ctx.delimit(' ');
+          ctx.line += `{ ${move.comment.before} } `;
+        }
       }
       else {
-        if(move.comment&&move.comment.before)
-          ctx.line += (ctx.line.length>ctx.indent?' ':'') + `{ ${move.comment.before} }`;
+        if(move.comment&&move.comment.before) {
+          ctx.delimit(' ');
+          ctx.line += `{ ${move.comment.before} }`;
+        }
 
-        ctx.line += (ctx.line.length>ctx.indent?' ':'');
+        ctx.delimit(' ');
       }
       ctx.line += move.san;
 
       if(move.nag) {
         if(NAGSTR[move.nag])
           ctx.line += `${NAGSTR[move.nag]}`;
-        else
-          ctx.line += (ctx.line.length>ctx.indent?' ':'') + `${move.nag}`;
+        else {
+          ctx.delimit(' ');
+          ctx.line += `${move.nag}`;
+        }
       }
 
-      if(move.comment&&move.comment.after)
-        ctx.line += (ctx.line.length>ctx.indent?' ':'') + `{ ${move.comment.after} }`;
+      if(move.comment&&move.comment.after) {
+        ctx.delimit(' ');
+        ctx.line += `{ ${move.comment.after} }`;
+      }
 
       if(move.vars.length) {
         move.vars.forEach(rav => {
@@ -129,7 +144,8 @@ export class Game {
 
           ctx.line += '(';
           this._moves_to_pgn(ctx, rav);        
-          ctx.line += (ctx.line.length?' ':'') + ')';
+          ctx.delimit(' ');
+          ctx.line += ')';
           ctx.out += ctx.line + '\n';
           ctx.indent -= 2;
           ctx.line = ' '.repeat(ctx.indent);
@@ -171,19 +187,19 @@ export class Game {
    * @param {Move?} prev first move if null
    * @return {Move | null}
    */
-  add(san, prev = undefined) {
+  var(san, prev = undefined) {
     let line = prev?prev.line:this.moves;
     let iprev = prev?line.indexOf(prev):-1;
     let oldmove = line[iprev+1];
+
+    let move = this._make_move(san, prev);
+    if(!move)
+      return null;
 
     if(!oldmove.vars)
       oldmove.vars = [];
     let rav = [];
     oldmove.vars.push(rav);
-
-    let move = this._make_move(san, prev);
-    if(!move)
-      return null;
 
     move.line = rav;
     rav.push(move);
@@ -196,19 +212,19 @@ export class Game {
    * @param {Move?} prev first move if null
    * @return {Move | null}
    */
-  insert(san, prev = undefined) {
+  main(san, prev = undefined) {
     let line =prev?prev.line:this.moves;
     let iprev = prev?line.indexOf(prev):-1;
     let oldmove = line[iprev+1];
+
+    let move = this._make_move(san, prev);
+    if(!move)
+      return null;
 
     if(!oldmove.vars)
       oldmove.vars = [];
     let rav = [];
     oldmove.vars.unshift(rav);
-
-    let move = this._make_move(san, prev);
-    if(!move)
-      return null;
 
     move.line = rav;
     rav.push(move);
@@ -221,15 +237,16 @@ export class Game {
    * @param {Move?} prev first move if null
    * @return {Move | null}
    */
-   addnext(san, prev = undefined) {
+   nextvar(san, prev = undefined) {
     let line = prev?prev.line:this.moves;
     let iprev = prev?line.indexOf(prev):-1;
-    let rav = line.splice(iprev+1);
-    rav.forEach(move => {move.line = rav;});
 
     let move = this.append(san, line);
     if(!move)
       return null;
+
+    let rav = line.splice(iprev+1);
+    rav.forEach(move => {move.line = rav;});
 
     move.vars=[];
     move.vars.push(rav);
@@ -269,8 +286,9 @@ export class Game {
 
     if(prev&&prev.num)
       move.num = prev.num+(move.color=='w'?1:0);
-    else
-      move.num = 1;
+    else {
+      move.num = Util.move_num_from_fen(fen);
+    }
 
     return move;
   }

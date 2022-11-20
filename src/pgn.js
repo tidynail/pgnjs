@@ -29,7 +29,7 @@ export class Pgn {
   /**
    * @return {number}
    */
-  gameCount() {
+  count() {
     return this.games.length;
   }
 
@@ -196,7 +196,7 @@ export class Pgn {
             if(prev_move&&prev_move.num)
               move.num = prev_move.num+(move.color=='w'?1:0);
             else
-              move.num = 1;
+              move.num = Util.move_num_from_fen(fen);
           }
 
           if (parsed_move.nag) {

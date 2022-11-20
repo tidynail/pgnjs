@@ -35,7 +35,7 @@ const pgn3 = new Pgn(
 
 1.Ne2+ Kh3 ( 1...Kf3 ( 1...Kh2 2.Qh5# ) 2.Qf4# ) 2.Qh5# *`);
 
-  const pgn4 = await Pgn.load('./pgn/var.pgn');
+  const pgn4 = await Pgn.load('./pgn/error.pgn');
   console.log(pgn.pgn());
   console.log(pgn2.pgn());
   console.log(pgn3.pgn());
