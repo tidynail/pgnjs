@@ -1,7 +1,7 @@
 {
   "type": "module",
   "name": "pgn.js",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Chess PGN, Portable Game Notation, Javascript Library",
   "main": "index.js",
   "types": "index.d.ts",
