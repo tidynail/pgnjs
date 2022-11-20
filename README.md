@@ -120,7 +120,7 @@ console.log(game.pgn());
 
 # Add Moves
 
-* move(san: string, line?: Move[]): Move
+* move(san: string, line?: Move[]): Move | null
 
 ```js
 // add a move to the end of the mainline
@@ -132,10 +132,10 @@ game.move('Nxd7', vm.line);
 
 # Variations
 
-1. var(san: string, prev?: Move): Move
-2. main(san: string, prev?: Move): Move
-3. next(san: string, prev?: Move): Move
-4. replace(san: string, prev?: Move): Move
+1. var(san: string, prev?: Move): Move | null
+2. main(san: string, prev?: Move): Move | null
+3. next(san: string, prev?: Move): Move | null
+4. replace(san: string, prev?: Move): Move | null
 
 ### Precondition
 ```js
@@ -282,17 +282,17 @@ Pgn.load('./pgn/big2.pgn', {onGame: (game, err) => {
 
 ## Options
 
-```js
+```ts
 export interface Options {
   verbose: boolean, // print error message
-  onGame: (game: Game, error: Error) => void,
-  onFinish: () => void,
+  onGame: (game: Game, error: Error): void,
+  onFinish: (): void,
 };
 ```
 
 ## Move
 
-```js
+```ts
 export interface Move {
   // from chess.js
   color: string, /* 'w', 'b' */
