@@ -2,11 +2,6 @@ declare module "pgn.js" {
 
 export type Games = Game[];
 
-export interface Game {
-  tags: Tag[];
-  moves: Move[];
-};
-
 export interface Tag {
   name: string,
   value: string,
@@ -35,6 +30,7 @@ export interface Move {
   // extends
   num: number,            // move number, not ply
   fen: string,
+  uci: string,            // uci long algebraic notation
 
   comment?: {
     pre?: string,         // comment before move number
@@ -43,7 +39,7 @@ export interface Move {
   },
   nag?: string,           // $<number>
 
-  vars?: move[][],
+  vars?: Move[][],
 
   // status
   over?: {
@@ -53,12 +49,13 @@ export interface Move {
   check?: boolean,        // check by this move
 
   ply: number,
-  next: move,
-  prev: move,
+  line: Move[],         // array containing this move
+  prev: Move,           // previous move
 };
 
 export interface Options {
-  sloppy?: boolean;
+  onGame: (game: Game) => void,
+  onFinished: () => void,
 };
 
 }

@@ -3,6 +3,8 @@ import { createInterface } from 'node:readline';
 
 import { parse } from './pgnparser.js';
 import { Chess } from 'chess.js';
+import { Game } from './game.js';
+import { Util } from './util.js';
 
 export class Pgn {
   /**
@@ -24,26 +26,62 @@ export class Pgn {
     this.games = this._from_pgn(pgn, opts);
   }
 
+  /**
+   * @return {number}
+   */
+  gameCount() {
+    return this.games.length;
+  }
+
+  /**
+   * @param {number} idx
+   * @return {Game}
+   */
+  game(idx) {
+    return (idx>=0&&idx<this.games.length?this.games[idx]:null);
+  }
+
+  pgn() {
+    let text = '';
+    this.games.forEach(game => {
+      text += game.pgn() + '\n';
+    });
+    return text;
+  }
+
   _from_pgn(pgn = '', opts = {}) {
-    const sloppy = !!opts.sloppy;
     const lines = pgn.split('\n');
 
     let ctx = {
       games: [],  // parsed games
-      game: { tags: [], moves: []},  // current game
+      game: new Game(),  // current game
       in_movetext: false, // line parsing status whether 'in movetext'
       movetext: '', // current collecting movetext
     };
 
     for(const line of lines) {      
-      this._handle_line(ctx, line + '\n', sloppy);
+      this._handle_line(ctx, line + '\n', opts);
     }
+
+    // last movetext
+    if(ctx.in_movetext) {
+      // parse movetext
+      if(ctx.game.tags.length) {
+        ctx.game.moves = this._parse_movetext(ctx.movetext, ctx.game.setupFen());
+        ctx.games.push(ctx.game);
+
+        if(opts?.onGame)
+          opts.onGame(ctx.game);
+      }
+    }
+
+    if(opts?.onFinished)
+      opts.onFinished();
 
     return ctx.games;
   }
 
   async _from_file(path, opts = {}) {
-    const sloppy = !!opts.sloppy;
     const fileStream = createReadStream(path);
   
     const rl = createInterface({
@@ -55,33 +93,56 @@ export class Pgn {
 
     let ctx = {
       games: [],  // parsed games
-      game: { tags: [], moves: []},  // current game
+      game: new Game(),  // current game
       in_movetext: false, // line parsing status whether 'in movetext'
       movetext: '', // current collecting movetext
     };
 
     for await (const line of rl) {
       if(line)
-        await this._handle_line(ctx, line, sloppy);
+        await this._handle_line(ctx, line, opts);
     }
 
+    // last movetext
+    if(ctx.in_movetext) {
+      // parse movetext
+      if(ctx.game.tags.length) {
+        ctx.game.moves = this._parse_movetext(ctx.movetext, ctx.game.setupFen());
+        ctx.games.push(ctx.game);
+
+        if(opts?.onGame)
+          opts.onGame(ctx.game);
+      }
+    }
+
+    if(opts?.onFinished)
+      opts.onFinished();
+  
     return ctx.games;
   }
 
-  async _handle_line(ctx, line, sloppy) {
+  async _handle_line(ctx, line, opts) {
     const has_tag = line.trimStart().startsWith('[');
     if(ctx.in_movetext) {
       if(has_tag) {
         // parse movetext
         if(ctx.game.tags.length) {
-          let fen = ctx.game.tags.find(tag => tag.name.toUpperCase() == 'FEN')?.value;
-          ctx.game.moves = this._parse_movetext(ctx.movetext, fen, sloppy);
+          ctx.game.moves = this._parse_movetext(ctx.movetext, ctx.game.setupFen());
           ctx.games.push(ctx.game);
 
-          ctx.game = { tags: [], moves: []}; // next cur game
+          if(opts?.onGame)
+            opts.onGame(ctx.game);
+
+          ctx.game = new Game(); // next cur game
         }
         ctx.in_movetext = false;
         ctx.movetext = '';
+
+        // parse tag
+        let tag = line.match(/\[(\w+)\s+"([^"]+)"/);
+        if (tag) {
+          ctx.game.tags.push({ name: tag[1], value: tag[2] });
+        }
       }
       else {
         ctx.movetext += line;
@@ -101,105 +162,76 @@ export class Pgn {
         ctx.in_movetext = true;
       }
     }
+  }
 
-    // last movetext
-    if(ctx.in_movetext) {
-      // parse movetext
-      if(ctx.game.tags.length) {
-        let fen = ctx.game.tags.find(tag => tag.name.toUpperCase() == 'FEN')?.value;
-        ctx.game.moves = this._parse_movetext(ctx.movetext, fen, sloppy);
-        ctx.games.push(ctx.game);
-      }
+  _parse_movetext(movetext, fen = '') {
+    let moves = [];
+    try{
+      const parsed_moves = parse(movetext);  // syntax parse
+      return this._make_moves(moves, parsed_moves[0], fen, undefined, 1);
+    } catch(err) {
+      console.error('parse error:',movetext);
+      throw err;
     }
   }
 
-  _parse_movetext(movetext, fen = '', sloppy = false) {
-    const parsedMoves = parse(movetext);  // syntax parse
-    return this._make_moves(parsedMoves[0], fen, undefined, 1, sloppy);
-  }
-
-  _make_moves(parsedMoves, fen, parent = undefined, ply = 1, sloppy = false) {
+  _make_moves(parent, parsed_moves, fen, prev_move = undefined, ply = 1) {
     const chess = fen ? new Chess(fen) : new Chess()
-    const moves = []
-    let prevMove = parent
-    for (let parsedMove of parsedMoves) {
-      if (parsedMove.text) {
-        const san = parsedMove.text.san;
-        const move = chess.move(san, {sloppy: sloppy});
-
-        if(parsedMove.num) {
-          move.num = parsedMove.num;
-        }
-        else {
-          if(prevMove&&prevMove.num)
-            move.num = prevMove.num+(move.color=='w'?1:0);
-        }
+    let moves = parent;
+    for (let parsed_move of parsed_moves) {
+      if (parsed_move.text) {
+        const san = parsed_move.text.san;
+        const move = chess.move(san, {sloppy: true});
 
         if (move) {
-          if (prevMove) {
-            move.prev = prevMove
-            prevMove.next = move
-          } else {
-            move.prev = undefined
-          }
+          move.line = parent;
+          move.prev = prev_move;
           move.ply = ply
-          this._fill_stat(move, chess)
-          if (parsedMove.nag) {
-            move.nag = parsedMove.nag[0]
+          Util.fill_move(move, chess)
+
+          if(parsed_move.num) {
+            move.num = parsed_move.num;
           }
-          if(parsedMove.comment_pre||parsedMove.comment_before||parsedMove.comment_after)
+          else {
+            if(prev_move&&prev_move.num)
+              move.num = prev_move.num+(move.color=='w'?1:0);
+            else
+              move.num = 1;
+          }
+
+          if (parsed_move.nag) {
+            move.nag = parsed_move.nag[0]
+          }
+          if(parsed_move.comment_pre||parsed_move.comment_before||parsed_move.comment_after)
           {
             move.comment = {};
-            if (parsedMove.comment_pre) {
-              move.comment.pre = parsedMove.comment_pre
+            if (parsed_move.comment_pre) {
+              move.comment.pre = parsed_move.comment_pre
             }
-            if (parsedMove.comment_before) {
-              move.comment.before = parsedMove.comment_before
+            if (parsed_move.comment_before) {
+              move.comment.before = parsed_move.comment_before
             }
-            if (parsedMove.comment_after) {
-              move.comment.after = parsedMove.comment_after
+            if (parsed_move.comment_after) {
+              move.comment.after = parsed_move.comment_after
             }
           }
           move.vars = []
-          const parsedVars = parsedMove.vars
+          const parsedVars = parsed_move.vars
           if (parsedVars.length > 0) {
             const lastFen = moves.length > 0 ? moves[moves.length - 1].fen : fen
             for (let parsedVar of parsedVars) {
-              move.vars.push(this._make_moves(parsedVar, lastFen, prevMove, ply, sloppy))
+              let rav = [];
+              move.vars.push(this._make_moves(rav, parsedVar, lastFen, prev_move, ply))
             }
           }
           moves.push(move)
-          prevMove = move
+          prev_move = move
         } else {
-          throw new "IllegalMoveException: " + chess.fen() + " + " + san;
+          throw "IllegalMoveException: " + chess.fen() + " + " + san;
         }
       }
       ply++;
     }
     return moves;
   }
-
-  _fill_stat(move, chess) {
-    move.fen = chess.fen()
-    move.vars = []
-    if (chess.isGameOver()) {
-      move.over = {}
-      if (chess.isCheckmate()) {
-        move.over.mate = true;
-      }
-      else if (chess.isDraw()) {
-        if (chess.isStalemate())
-          move.over.draw = 'stale';
-        else if (chess.isInsufficientMaterial())
-          move.over.draw = 'material';
-        else if (chess.isThreefoldRepetition())
-          move.over.draw = '3fold';
-        else
-          move.over.draw = 'fifty';
-      }
-    }
-    if (chess.isCheck()) {
-      move.check = true
-    }
-  }
-}
+};

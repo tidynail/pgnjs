@@ -1,0 +1,277 @@
+import { Chess } from 'chess.js';
+import { Util } from './util.js';
+
+// when there is already a move, how insertion will work
+export const NOVAR = 'novar'; // (default) modify only, no variation change
+export const VAR = {
+  remove: 'remove',   
+  replace: 'prevvar',  // make existing one as next variation
+  nextvar: 'nextvar',  // added as the next variation
+  lastvar: 'lastvar'   // added as the last variation
+}
+
+// some essential tags placed at the beginning
+const STDTAGS = [
+  // Standard "Seven Tag Roster"
+  "Event",
+  "Site",
+  "Date",
+  "Round",
+  "White",
+  "Black",
+  "Result",
+
+  "Steup",
+  "FEN",
+];
+
+const NAGSTR = {
+  '$1': '!',
+  '$2': '?',
+  '$3': '!!',
+  '$4': '??',
+  '$5': '!?',
+  '$6': '?!',
+};
+
+export class Game {
+  constructor() {
+    this.tags = [];
+    this.moves = [];
+  }
+
+  /**
+   * @return {string | undefined} fen
+   */
+  setupFen() {
+    return this.tags.find(tag => tag.name.toUpperCase() == 'FEN')?.value;
+  }
+
+  pgn() {
+    let ctx = { out: '', line: '', indent: 0 };
+    STDTAGS.forEach(stdtag => {
+      let value = this.tags.find(item => {item.name == stdtag})?.value;
+      if(value)
+        ctx.out += `[${stdtag} "${value}"]\n`
+    });
+
+    this.tags.forEach(tag => {
+      if(!STDTAGS.find(item => {item == tag.name}))
+        ctx.out += `[${tag.name} "${tag.value}"]\n`;
+    });
+
+    ctx.out += '\n';
+
+    this._moves_to_pgn(ctx, this.moves);
+
+    // last line
+    ctx.out += ctx.line;
+
+    // game termination mark
+    let endmark = '*';
+    let last_move = this.moves.length?this.moves[this.moves.length-1]:null;
+    if(last_move?.over) {
+      if(last_move.over.mate) {
+        endmark = last_move.color=='w'?'1-0':'0-1';
+      }
+      else {
+        endmark = '1/2-1/2';
+      }
+    }
+
+    ctx.out += (ctx.line.length?' ':'') + endmark + '\n';
+
+    return ctx.out;
+  }
+
+  _moves_to_pgn(ctx, moves) {
+    let firstmove = true;
+    let white_had_comment = false;
+    moves.forEach(move => {
+
+      if(move.comment&&move.comment.pre)
+        ctx.line += (ctx.line.length>ctx.indent?' ':'') + `{ ${move.comment.pre} }`;
+
+      if(move.color=='w' || firstmove ||
+         (move.color=='b'&&move.comment&&(move.comment.pre||move.comment.before))||
+         (move.color=='b'&&white_had_comment)) {
+
+        ctx.line += (ctx.line.length>ctx.indent?' ':'') + (move.color=='w'?`${move.num}.`:`${move.num}...`);
+
+        if(move.comment&&move.comment.before)
+          ctx.line += (ctx.line.length>ctx.indent?' ':'') + `{ ${move.comment.before} } `;
+      }
+      else {
+        if(move.comment&&move.comment.before)
+          ctx.line += (ctx.line.length>ctx.indent?' ':'') + `{ ${move.comment.before} }`;
+
+        ctx.line += (ctx.line.length>ctx.indent?' ':'');
+      }
+      ctx.line += move.san;
+
+      if(move.nag) {
+        if(NAGSTR[move.nag])
+          ctx.line += `${NAGSTR[move.nag]}`;
+        else
+          ctx.line += (ctx.line.length>ctx.indent?' ':'') + `${move.nag}`;
+      }
+
+      if(move.comment&&move.comment.after)
+        ctx.line += (ctx.line.length>ctx.indent?' ':'') + `{ ${move.comment.after} }`;
+
+      if(move.vars.length) {
+        move.vars.forEach(rav => {
+          if(ctx.line!=' '.repeat(ctx.indent))
+            ctx.out += ctx.line + '\n';
+
+          ctx.indent += 2;
+          ctx.line = ' '.repeat(ctx.indent);
+
+          ctx.line += '(';
+          this._moves_to_pgn(ctx, rav);        
+          ctx.line += (ctx.line.length?' ':'') + ')';
+          ctx.out += ctx.line + '\n';
+          ctx.indent -= 2;
+          ctx.line = ' '.repeat(ctx.indent);
+        });
+      }
+
+      if(ctx.line.length > 75) {
+        ctx.out += ctx.line + '\n';
+        ctx.line = ' '.repeat(ctx.indent);
+      }
+
+      white_had_comment = (move.color=='w'&&move.comment&&move.comment.after);
+      firstmove = false;
+    });
+  }
+
+  /**
+   * @param {string} san
+   * @param {Move[]?} line to add
+   * @return {Move | null}
+   */
+  move(san, line) {
+    let moves = line?line:this.moves;
+    let last_move = moves.length?moves[moves.length-1]:null;
+
+    let move = this._make_move(san, last_move);
+    if(!move)
+      return null;
+
+    // fill extends
+    move.line = moves;
+    moves.push(move);
+    return move;
+  }
+
+  /**
+   * as the last variation
+   * @param {string} san
+   * @param {Move?} prev first move if null
+   * @return {Move | null}
+   */
+  add(san, prev = undefined) {
+    let line = prev?prev.line:this.moves;
+    let iprev = prev?line.indexOf(prev):-1;
+    let oldmove = line[iprev+1];
+
+    if(!oldmove.vars)
+      oldmove.vars = [];
+    let rav = [];
+    oldmove.vars.push(rav);
+
+    let move = this._make_move(san, prev);
+    if(!move)
+      return null;
+
+    move.line = rav;
+    rav.push(move);
+    return move;
+  }
+
+  /**
+   * make others as variations 
+   * @param {string} san
+   * @param {Move?} prev first move if null
+   * @return {Move | null}
+   */
+  insert(san, prev = undefined) {
+    let line =prev?prev.line:this.moves;
+    let iprev = prev?line.indexOf(prev):-1;
+    let oldmove = line[iprev+1];
+
+    if(!oldmove.vars)
+      oldmove.vars = [];
+    let rav = [];
+    oldmove.vars.unshift(rav);
+
+    let move = this._make_move(san, prev);
+    if(!move)
+      return null;
+
+    move.line = rav;
+    rav.push(move);
+    return move;
+  }
+
+  /**
+   * as the very next variation
+   * @param {string} san
+   * @param {Move?} prev first move if null
+   * @return {Move | null}
+   */
+   addnext(san, prev = undefined) {
+    let line = prev?prev.line:this.moves;
+    let iprev = prev?line.indexOf(prev):-1;
+    let rav = line.splice(iprev+1);
+    rav.forEach(move => {move.line = rav;});
+
+    let move = this.append(san, line);
+    if(!move)
+      return null;
+
+    move.vars=[];
+    move.vars.push(rav);
+
+    // move all varations
+    while(rav[0].vars.length)
+      move.vars.push(rav[0].vars.shift());
+
+    return move;
+  }
+
+  /**
+   * no variation, overwrite
+   * @param {string} san
+   * @param {Move?} prev first move if null
+   * @return {Move | null}
+   */
+  replace(san, prev = undefined) {
+    let line = prev?prev.line:this.moves;
+    let iprev = prev?line.indexOf(prev):-1;
+    line.splice(iprev+1);
+    return this.append(san, line);
+  }
+
+  _make_move(san, prev) {
+    let fen = prev?prev.fen:this.setupFen();
+
+    const chess = new Chess(fen);
+    let move = chess.move(san, {sloppy: true});
+    if(!move)
+      return null;
+
+    // fill extends
+    move.ply = prev?prev.ply+1:1;
+    move.prev = prev;
+    Util.fill_move(move, chess);
+
+    if(prev&&prev.num)
+      move.num = prev.num+(move.color=='w'?1:0);
+    else
+      move.num = 1;
+
+    return move;
+  }
+};

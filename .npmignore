@@ -1,4 +1,4 @@
 *.pegjs
-sample
+sample/
 .gitignore
 .vscode

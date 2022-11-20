@@ -18,7 +18,7 @@ pgn
       arr.unshift(move);
       return arr; }
   / ws_
-    { return []; }
+    { return [[]]; }
 
 move
   = ws_ c_pre:comment? ws_ num:mvnum? ws_ c_before:comment? ws_
@@ -47,8 +47,10 @@ comment
   = '{' cmt:[^}]* '}' { return cmt.join("").trim(); }
 
 rav
-  = '(' rav:move ')' ws_ rest:rav? ws_ num:mvnum?
+  = '(' rav:move ')' ws_ rest:rav?
     { var arr = (rest ? rest : []); arr.unshift(rav); return arr; }
+  / '(' ws_ ')'
+    { var arr = []; return arr; }
 
 mvnum
     = num:integer ws_ "."* { return num; }
@@ -68,13 +70,11 @@ ws
 san
   = piece:piece? & checkdisc disc:discriminator capture:capture?
     col:column row:row pr:promotion? ch:check?
-    { var hm = {}; hm.piece = (piece ? piece : null); hm.disc =  (disc ? disc : null); hm.capture = (capture ? capture : null); hm.col = col; hm.row = row; hm.check = (ch ? ch : null); hm.promotion = pr; hm.san = (piece ? piece : "") + (disc ? disc : "") + (capture ? capture : "") + col + row + (pr ? pr : "") + (ch ? ch : ""); return hm; }
-  / piece:piece? cols:column rows:row capture:capture_or_dash? col:column row:row pr:promotion? ch:check?
-    { var hm = {}; hm.piece = (piece ? piece : null); hm.capture = (capture =='x' ? capture : null); hm.col = col; hm.row = row; hm.check = (ch ? ch : null); hm.san = (piece && (piece!=='P') ? piece : "") + cols + rows + (capture=='x' ? capture : "-") + col  + row + (pr ? pr : "") + (ch ? ch : ""); hm.promotion = pr; return hm; }
+    { var san = {}; san.piece = (piece ? piece : null); san.disc =  (disc ? disc : null); san.capture = (capture ? capture : null); san.col = col; san.row = row; san.check = (ch ? ch : null); san.promotion = pr; san.san = (piece ? piece : "") + (disc ? disc : "") + (capture ? capture : "") + col + row + (pr ? pr : "") + (ch ? ch : ""); return san; }
   / piece:piece? capture:capture? col:column row:row pr:promotion? ch:check?
-    { var hm = {}; hm.piece = (piece ? piece : null); hm.capture = (capture ? capture : null); hm.col = col; hm.row = row; hm.check = (ch ? ch : null); hm.san = (piece ? piece : "") + (capture ? capture : "") + col  + row + (pr ? pr : "") + (ch ? ch : ""); hm.promotion = pr; return hm; }
-  / 'O-O-O' ch:check? { var hm = {}; hm.san = 'O-O-O'+ (ch ? ch : ""); hm.check = (ch ? ch : null); return  hm; }
-  / 'O-O' ch:check? { var hm = {}; hm.san = 'O-O'+ (ch ? ch : ""); hm.check = (ch ? ch : null); return  hm; }
+    { var san = {}; san.piece = (piece ? piece : null); san.capture = (capture ? capture : null); san.col = col; san.row = row; san.check = (ch ? ch : null); san.san = (piece ? piece : "") + (capture ? capture : "") + col  + row + (pr ? pr : "") + (ch ? ch : ""); san.promotion = pr; return san; }
+  / 'O-O-O' ch:check? { var san = {}; san.san = 'O-O-O'+ (ch ? ch : ""); san.check = (ch ? ch : null); return  san; }
+  / 'O-O' ch:check? { var san = {}; san.san = 'O-O'+ (ch ? ch : ""); san.check = (ch ? ch : null); return  san; }
 
 check
   = ch:(! '+-' '+') { return ch[1]; }

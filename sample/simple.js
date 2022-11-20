@@ -1,14 +1,9 @@
-import { Pgn, Chess } from 'pgn.js';
-
-/*
-const chess = new Chess();
+import { Pgn } from 'pgn.js';
 const pgn = new Pgn(
-`[Site "Berlin"]
-[Date "1989.07.02"]
-[White "Haack, Stefan"]
-[Black "Maier, Karsten"]
+`[Site "Toronto"]
+[Date "2022.11.17"]
 
-1 .. {b} e4 {c} e5 {d} (e6 {ae}) {e} 2. {f} Nf3    $1      {   'Great move!'     }      Nc6 *`);
+1 .. {comment before} e4 {comment after} e5 { comment black after } (e6 { variation comment} ) {commentt pre move} 2. {comment before 2nd} Nf3    $1      {   'Great move!'     }      Nc6 *`);
 
 const pgn2 = new Pgn(
 `[Event "?"]
@@ -39,16 +34,13 @@ const pgn3 = new Pgn(
 [PlyCount "3"]
 
 1.Ne2+ Kh3 ( 1...Kf3 ( 1...Kh2 2.Qh5# ) 2.Qf4# ) 2.Qh5# *`);
-*/
 
-  const pgn4 = await Pgn.load('var.pgn');
+  const pgn4 = await Pgn.load('./pgn/var.pgn');
+  console.log(pgn.pgn());
+  console.log(pgn2.pgn());
+  console.log(pgn3.pgn());
+  console.log(pgn4.pgn());
+
+  //const pgn5 = await Pgn.load('./pgn/polgar5334.pgn');
+  //console.log(pgn5.pgn());
   
-  pgn4.games[0].moves.forEach((item,idx) => {
-  //console.log(idx, item.color, item.num);
-  //console.log(idx, item.comment?.pre, item.comment?.before, item.comment?.after);
-  if(item.vars.length)
-    console.log(idx, item.vars[0].length);
-  //item.variation.forEach((move,midx)=> {
-  //  console.log(idx,midx,move.san)
-  //});
-});
