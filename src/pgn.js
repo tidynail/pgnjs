@@ -75,8 +75,8 @@ export class Pgn {
       }
     }
 
-    if(opts?.onFinished)
-      opts.onFinished();
+    if(opts?.onFinish)
+      opts.onFinish();
 
     return ctx.games;
   }
@@ -115,8 +115,8 @@ export class Pgn {
       }
     }
 
-    if(opts?.onFinished)
-      opts.onFinished();
+    if(opts?.onFinish)
+      opts.onFinish();
   
     return ctx.games;
   }

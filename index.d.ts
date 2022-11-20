@@ -55,7 +55,7 @@ export interface Move {
 
 export interface Options {
   onGame: (game: Game) => void,
-  onFinished: () => void,
+  onFinish: () => void,
 };
 
 }
