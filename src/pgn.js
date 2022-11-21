@@ -60,8 +60,7 @@ export class Pgn {
   }
 
   _from_pgn(pgn = '', opts = {}) {
-    const lines = pgn.split('\n');
-    const verbose = !!opts?.verbose;
+    const lines = pgn.split('\n');    
 
     let ctx = {
       games: [],  // parsed games
@@ -79,7 +78,7 @@ export class Pgn {
       // parse movetext
       if(ctx.game.tags.length) {
         ctx.game.moves = [];
-        let err = this._parse_movetext(ctx.game.moves, ctx.movetext, ctx.game.setupFen(), verbose);
+        let err = this._parse_movetext(ctx.game, ctx.movetext, ctx.game.setupFen(), opts);
         ctx.games.push(ctx.game);
 
         if(opts?.onGame)
@@ -93,9 +92,7 @@ export class Pgn {
     return ctx.games;
   }
 
-  async _from_file(path, opts = {}) {
-    const verbose = !!opts?.verbose;
-  
+  async _from_file(path, opts = {}) {  
     const rl = createInterface({
       input: path?createReadStream(path):stdin,
       crlfDelay: Infinity
@@ -120,7 +117,7 @@ export class Pgn {
       // parse movetext
       if(ctx.game.tags.length) {
         ctx.game.moves = [];
-        let err = this._parse_movetext(ctx.game.moves, ctx.movetext, ctx.game.setupFen(), verbose);
+        let err = this._parse_movetext(ctx.game, ctx.movetext, ctx.game.setupFen(), opts);
         ctx.games.push(ctx.game);
 
         if(opts?.onGame)
@@ -135,14 +132,13 @@ export class Pgn {
   }
 
   async _handle_line(ctx, line, opts) {
-    const verbose = !!opts?.verbose;
     const has_tag = line.trimStart().startsWith('[');
     if(ctx.in_movetext) {
       if(has_tag) {
         // parse movetext
         if(ctx.game.tags.length) {
           ctx.game.moves = [];
-          let err = this._parse_movetext(ctx.game.moves, ctx.movetext, ctx.game.setupFen(), verbose);
+          let err = this._parse_movetext(ctx.game, ctx.movetext, ctx.game.setupFen(), opts);
           ctx.games.push(ctx.game);
 
           if(opts?.onGame)
@@ -179,11 +175,12 @@ export class Pgn {
     }
   }
 
-  _parse_movetext(moves, movetext, fen = '', verbose) {
+  _parse_movetext(game, movetext, fen = '', opts = {}) {
+    const verbose = !!opts?.verbose;
     let err = undefined;
     try{
       const parsed_moves = parse(movetext);  // syntax parse
-      err = this._make_moves(moves, parsed_moves[0], fen, undefined, 1);
+      err = this._make_moves(game, game.moves, parsed_moves[0], fen, undefined, 1);
       if(err) {
         // error
         err.movetext = movetext;
@@ -205,7 +202,7 @@ export class Pgn {
   /**
    * @return {error}
    */
-  _make_moves(parent, parsed_moves, fen, prev_move, ply) {
+  _make_moves(game, parent, parsed_moves, fen, prev_move, ply) {
     const chess = fen ? new Chess(fen) : new Chess()
     let moves = parent;
     for (let parsed_move of parsed_moves) {
@@ -251,7 +248,7 @@ export class Pgn {
             const lastFen = moves.length > 0 ? moves[moves.length - 1].fen : fen
             for (let parsedVar of parsedVars) {
               let rav = [];
-              let err = this._make_moves(rav, parsedVar, lastFen, prev_move, ply);
+              let err = this._make_moves(game, rav, parsedVar, lastFen, prev_move, ply);
               if(rav.length>0)
                 move.vars.push(rav);
               if(err)
@@ -268,6 +265,9 @@ export class Pgn {
             num: prev_move?.num
           };
         }
+      }
+      else if(parsed_move.gtm) {
+        game.gtm = parsed_move.gtm;
       }
       ply++;
     }

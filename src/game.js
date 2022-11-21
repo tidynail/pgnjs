@@ -38,6 +38,7 @@ export class Game {
   constructor() {
     this.tags = [];
     this.moves = [];
+    this.gtm = null;  // game termination mark
   }
 
   /**
@@ -101,22 +102,26 @@ export class Game {
 
     this._moves_to_pgn(ctx, this.moves);
 
-    // last line
-    ctx.out += ctx.line;
-
     // game termination mark
-    let endmark = '*';
-    let last_move = this.moves.length?this.moves[this.moves.length-1]:null;
-    if(last_move?.over) {
-      if(last_move.over.mate) {
-        endmark = last_move.color=='w'?'1-0':'0-1';
-      }
-      else {
-        endmark = '1/2-1/2';
+    let endmark = this.gtm;
+    if(!endmark) {
+      endmark = '*';
+      let last_move = this.moves.length?this.moves[this.moves.length-1]:null;
+      if(last_move?.over) {
+        if(last_move.over.mate) {
+          endmark = last_move.color=='w'?'1-0':'0-1';
+        }
+        else {
+          endmark = '1/2-1/2';
+        }
       }
     }
 
-    ctx.out += (ctx.line.length?' ':'') + endmark + '\n';
+    ctx.delimit(' ');
+    ctx.line += endmark + '\n'; 
+
+    ctx.out += ctx.line;
+    ctx.line = '';
 
     return ctx.out;
   }
