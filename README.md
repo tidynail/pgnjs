@@ -207,6 +207,7 @@ Without loading the whole file, parsing games as reading the input file.
 
 ```js
 async Pgn.load(path: string, opts: Option): Pgn;
+  // stdin if path == ''
 
 opts.onGame: (game: Game, error: Error) => void
 opts.onFinish: () => void
@@ -364,7 +365,8 @@ Pgn(pgn: string, opts: Options);
 pgn.count() : Number  // # of games
 pgn.game(idx: Number): Game // access a game
 
-static async Pgn.load(path: string, opts: Options): Pgn
+static async Pgn.load(path: string, opts: Options): Pgn 
+  // load from file, stdin if path == ''
 ```
 
 ## Game

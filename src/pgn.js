@@ -1,3 +1,4 @@
+import { stdin } from 'node:process';
 import { createReadStream } from 'node:fs';
 import { createInterface } from 'node:readline';
 
@@ -8,7 +9,7 @@ import { Util } from './util.js';
 
 export class Pgn {
   /**
-   * @param {string} path
+   * @param {string} path stdin if ''
    * @param {Options} opts
    * @return {Pgn} pgn
    */
@@ -93,11 +94,10 @@ export class Pgn {
   }
 
   async _from_file(path, opts = {}) {
-    const fileStream = createReadStream(path);
     const verbose = !!opts?.verbose;
   
     const rl = createInterface({
-      input: fileStream,
+      input: path?createReadStream(path):stdin,
       crlfDelay: Infinity
     });
     // Note: we use the crlfDelay option to recognize all instances of CR LF
