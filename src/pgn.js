@@ -9,9 +9,10 @@ import { Util } from './util.js';
 
 export class Pgn {
   /**
-   * @param {string} path stdin if ''
+   * load a pgn file, or read from stdin if 'path' is '' or null
+   * @param {string} path stdin if '' or null
    * @param {Options} opts
-   * @return {Pgn} pgn
+   * @return {Pgn}
    */
   static async load(path, opts = {}) {
     let pgn = new Pgn('', opts);
@@ -20,14 +21,17 @@ export class Pgn {
   }
 
   /**
+   * parse a pgn string
    * @param {string} pgn
    * @param {Options} opts
+   * @return {Pgn}
    */
   constructor(pgn = '', opts = {}) {
     this.games = this._from_pgn(pgn, opts);
   }
 
   /**
+   * total number of games
    * @return {number}
    */
   count() {
@@ -35,6 +39,7 @@ export class Pgn {
   }
 
   /**
+   * get a game
    * @param {number} idx
    * @return {Game}
    */
@@ -43,6 +48,7 @@ export class Pgn {
   }
 
   /**
+   * add new game
    * @return {Game}
    */
   newgame() {
@@ -51,6 +57,10 @@ export class Pgn {
     return game;
   }
 
+  /**
+   * return the pgn string of all games
+   * @return {string}
+   */
   pgn() {
     let text = '';
     this.games.forEach(game => {
@@ -59,6 +69,9 @@ export class Pgn {
     return text;
   }
 
+  /**
+   * @private
+   */
   _from_pgn(pgn = '', opts = {}) {
     const lines = pgn.split('\n');    
 
@@ -92,6 +105,9 @@ export class Pgn {
     return ctx.games;
   }
 
+  /**
+   * @private
+   */
   async _from_file(path, opts = {}) {  
     const rl = createInterface({
       input: path?createReadStream(path):stdin,
@@ -131,6 +147,9 @@ export class Pgn {
     return ctx.games;
   }
 
+  /**
+   * @private
+   */
   async _handle_line(ctx, line, opts) {
     const has_tag = line.trimStart().startsWith('[');
     if(ctx.in_movetext) {
@@ -175,6 +194,9 @@ export class Pgn {
     }
   }
 
+  /**
+   * @private
+   */
   _parse_movetext(game, movetext, fen = '', opts = {}) {
     const verbose = !!opts?.verbose;
     let err = undefined;
@@ -200,7 +222,8 @@ export class Pgn {
   }
 
   /**
-   * @return {error}
+   * @private
+   * @return {Err}
    */
   _make_moves(game, parent, parsed_moves, fen, prev_move, ply) {
     const chess = fen ? new Chess(fen) : new Chess()

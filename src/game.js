@@ -1,16 +1,17 @@
 import { Chess } from 'chess.js';
 import { Util } from './util.js';
 
-// when there is already a move, how insertion will work
-export const NOVAR = 'novar'; // (default) modify only, no variation change
-export const VAR = {
-  remove: 'remove',   
-  replace: 'prevvar',  // make existing one as next variation
-  nextvar: 'nextvar',  // added as the next variation
-  lastvar: 'lastvar'   // added as the last variation
+export const VARMODE = {
+  replace:  'replace',  // replace old move with new one, no variation
+  main: 'main',         // becomes the mainline
+  next: 'next',         // added as the next variation
+  last: 'last'          // (default) added as the last variation
 }
 
 // some essential tags placed at the beginning
+/**
+ * @private
+ */
 const STDTAGS = [
   // Standard "Seven Tag Roster"
   "Event",
@@ -25,6 +26,9 @@ const STDTAGS = [
   "FEN",
 ];
 
+/**
+ * @private
+ */
 const QUICKNAG = {
   '$1': '!',
   '$2': '?',
@@ -34,6 +38,9 @@ const QUICKNAG = {
   '$6': '?!',
 };
 
+/**
+ * @private
+ */
 const NAGSTR = {
   '$18': '+-',
   '$19': '-+',
@@ -41,12 +48,23 @@ const NAGSTR = {
 
 export class Game {
   constructor() {
+    /** @type {Tag[]} */
     this.tags = [];
+
+    /** @type {Move[]} */
     this.moves = [];
+
+    /** @type {string} */
     this.gtm = null;  // game termination mark
+
+    /** @type {Move} */
+    this.cur = null;
+    /** @type {VARMODE} */
+    this.varmode = VARMODE.last;
   }
 
   /**
+   * get setup fen if there is
    * @return {string | undefined} fen
    */
   setupFen() {
@@ -54,7 +72,9 @@ export class Game {
   }
 
   /**
+   * set fen tag with setup tag
    * @param {string} fen
+   * @return {void}
    */
   setFen(fen) {
     this.delTag('FEN');
@@ -64,16 +84,29 @@ export class Game {
   }
 
   /**
-   * @param {string} name
-   * @param {string} value
+   * delete fen and setup tag
+   * @return {void}
    */
-  setTag(_name, _value) {
-    this.delTag(_name);
-    this.tags.push({name: _name, value: _value});
+  delFen() {
+    this.delTag('FEN');
+    this.delTag('Setup');
   }
 
   /**
+   * set a tag
+   * @param {string} name
+   * @param {string} value
+   * @return {void}
+   */
+  setTag(name, value) {
+    this.delTag(name);
+    this.tags.push({name: name, value: value});
+  }
+
+  /**
+   * delete a tag, name is case insensitive
    * @param {string} name 
+   * @return {void}
    */
   delTag(_name) {
     const i = this.tags.findIndex(tag => {return tag.name.toUpperCase()==_name.toUpperCase();});
@@ -81,6 +114,10 @@ export class Game {
       this.tags.splice(i,1);
   }
 
+  /**
+   * return pgn string of the game
+   * @return {void}
+   */
   pgn() {
     let ctx = { out: '', line: '', _indent: 0,
       at$: function() { return (this.line.length<=this._indent); },
@@ -153,6 +190,9 @@ export class Game {
     return ctx.out;
   }
 
+  /**
+   * @private
+   */
   _moves_to_pgn(ctx, moves) {
     let firstmove = true;
     let white_had_comment = false;
@@ -219,31 +259,70 @@ export class Game {
   }
 
   /**
+   * add a move, this.cur will be updated if successful
+   * @param {string} san            // short algebraic notation
+   * @param {Move=} prev            // add after this move
+   *                                // this.cur if undefined
+   *                                // first move if null
+   * @param {VARMODE=} varmode  // variation mode, 'varmode' if null
+   */
+  add(san, prev, varmode) {
+    let prev_move = prev===undefined?this.cur:prev;
+    let line = prev_move?prev_move.line:this.moves;
+    let iprev = prev_move?line.indexOf(prev_move):-1;
+    let oldmove = (iprev+1)<line.length?line[iprev+1]:null;
+
+    let move;
+    if(oldmove) {
+      let vm = varmode?varmode:this.varmode;
+
+      // variation
+      switch(vm) {
+        case VARMODE.replace: move = this._add_replace(san, prev_move); break;
+        case VARMODE.main: move = this._add_mainvar(san, prev_move); break;
+        case VARMODE.next: move = this._add_nextvar(san, prev_move); break;
+        default:
+        case VARMODE.last: move = this._add_lastvar(san, prev_move); break;
+      }
+    }
+    else {
+      // append to the line
+      move = this._add_to_line(san, line);
+    }
+
+    if(move)
+      this.cur = move;
+    
+    return move;
+  }
+
+  /**
+   * @private
    * @param {string} san
-   * @param {Move[]?} line to add
+   * @param {Move[]} line to add
    * @return {Move | null}
    */
-  move(san, line) {
-    let moves = line?line:this.moves;
-    let last_move = moves.length?moves[moves.length-1]:null;
+  _add_to_line(san, line) {
+    let last_move = line.length?line[line.length-1]:null;
 
     let move = this._make_move(san, last_move);
     if(!move)
       return null;
 
     // fill extends
-    move.line = moves;
-    moves.push(move);
+    move.line = line;
+    line.push(move);
     return move;
   }
 
   /**
    * as the last variation
+   * @private
    * @param {string} san
-   * @param {Move?} prev first move if null
+   * @param {Move | null} prev first move if null
    * @return {Move | null}
    */
-  var(san, prev = undefined) {
+  _add_lastvar(san, prev) {
     let line = prev?prev.line:this.moves;
     let iprev = prev?line.indexOf(prev):-1;
     let oldmove = line[iprev+1];
@@ -263,12 +342,13 @@ export class Game {
   }
 
   /**
-   * make others as variations 
+   * make others as variations
+   * @private
    * @param {string} san
-   * @param {Move?} prev first move if null
+   * @param {Move | null} prev
    * @return {Move | null}
    */
-   main(san, prev = undefined) {
+   _add_mainvar(san, prev) {
     let line = prev?prev.line:this.moves;
     let iprev = prev?line.indexOf(prev):-1;
 
@@ -293,11 +373,12 @@ export class Game {
 
   /**
    * as the very next variation
+   * @private
    * @param {string} san
-   * @param {Move?} prev first move if null
+   * @param {Move | null} prev first move if null
    * @return {Move | null}
    */
-  next(san, prev = undefined) {
+  _add_nextvar(san, prev) {
     let line =prev?prev.line:this.moves;
     let iprev = prev?line.indexOf(prev):-1;
     let oldmove = line[iprev+1];
@@ -318,17 +399,24 @@ export class Game {
 
   /**
    * no variation, overwrite
+   * @private
    * @param {string} san
-   * @param {Move?} prev first move if null
+   * @param {Move | null} prev first move if null
    * @return {Move | null}
    */
-  replace(san, prev = undefined) {
+  _add_replace(san, prev) {
     let line = prev?prev.line:this.moves;
     let iprev = prev?line.indexOf(prev):-1;
     line.splice(iprev+1);
     return this.move(san, line);
   }
 
+  /**
+   * @private
+   * @param {string} san
+   * @param {Move?} prev first move if null
+   * @return {Move | null}
+   */
   _make_move(san, prev) {
     let fen = prev?prev.fen:this.setupFen();
 

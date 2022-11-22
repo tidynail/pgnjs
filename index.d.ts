@@ -1,75 +1,136 @@
 declare module "util" {
     export class Util {
-        static fill_move(move: any, chess: any): void;
-        static move_num_from_fen(fen: any): number;
+        /**
+         * @private
+         */
+        private static fill_move;
+        /**
+         * @private
+         */
+        private static move_num_from_fen;
     }
 }
 declare module "game" {
-    export const NOVAR: "novar";
-    export namespace VAR {
-        const remove: string;
+    export namespace VARMODE {
         const replace: string;
-        const nextvar: string;
-        const lastvar: string;
+        const main: string;
+        const next: string;
+        const last: string;
     }
     export class Game {
-        tags: any[];
-        moves: any[];
-        gtm: any;
+        /** @type {Tag[]} */
+        tags: Tag[];
+        /** @type {Move[]} */
+        moves: Move[];
+        /** @type {string} */
+        gtm: string;
+        /** @type {Move} */
+        cur: Move;
+        /** @type {VARMODE} */
+        varmode: {
+            replace: string;
+            main: string;
+            next: string;
+            last: string;
+        };
         /**
+         * get setup fen if there is
          * @return {string | undefined} fen
          */
         setupFen(): string | undefined;
         /**
+         * set fen tag with setup tag
          * @param {string} fen
+         * @return {void}
          */
         setFen(fen: string): void;
         /**
+         * delete fen and setup tag
+         * @return {void}
+         */
+        delFen(): void;
+        /**
+         * set a tag
          * @param {string} name
          * @param {string} value
+         * @return {void}
          */
-        setTag(_name: any, _value: any): void;
+        setTag(name: string, value: string): void;
         /**
+         * delete a tag, name is case insensitive
          * @param {string} name
+         * @return {void}
          */
         delTag(_name: any): void;
-        pgn(): string;
-        _moves_to_pgn(ctx: any, moves: any): void;
         /**
+         * return pgn string of the game
+         * @return {void}
+         */
+        pgn(): void;
+        /**
+         * @private
+         */
+        private _moves_to_pgn;
+        /**
+         * add a move, this.cur will be updated if successful
+         * @param {string} san            // short algebraic notation
+         * @param {Move=} prev            // add after this move
+         *                                // this.cur if undefined
+         *                                // first move if null
+         * @param {VARMODE=} varmode  // variation mode, 'varmode' if null
+         */
+        add(san: string, prev?: Move | undefined, varmode?: {
+            replace: string;
+            main: string;
+            next: string;
+            last: string;
+        } | undefined): Move;
+        /**
+         * @private
          * @param {string} san
-         * @param {Move[]?} line to add
+         * @param {Move[]} line to add
          * @return {Move | null}
          */
-        move(san: string, line: Move[] | null): Move | null;
+        private _add_to_line;
         /**
          * as the last variation
+         * @private
          * @param {string} san
-         * @param {Move?} prev first move if null
+         * @param {Move | null} prev first move if null
          * @return {Move | null}
          */
-        var(san: string, prev?: Move | null): Move | null;
+        private _add_lastvar;
         /**
          * make others as variations
+         * @private
          * @param {string} san
-         * @param {Move?} prev first move if null
+         * @param {Move | null} prev
          * @return {Move | null}
          */
-        main(san: string, prev?: Move | null): Move | null;
+        private _add_mainvar;
         /**
          * as the very next variation
+         * @private
          * @param {string} san
-         * @param {Move?} prev first move if null
+         * @param {Move | null} prev first move if null
          * @return {Move | null}
          */
-        next(san: string, prev?: Move | null): Move | null;
+        private _add_nextvar;
         /**
          * no variation, overwrite
+         * @private
+         * @param {string} san
+         * @param {Move | null} prev first move if null
+         * @return {Move | null}
+         */
+        private _add_replace;
+        /**
+         * @private
          * @param {string} san
          * @param {Move?} prev first move if null
          * @return {Move | null}
          */
-        replace(san: string, prev?: Move | null): Move | null;
-        _make_move(san: any, prev: any): import("chess.js").Move;
+        private _make_move;
     }
 }
 declare module "pgnparser" {
@@ -87,39 +148,62 @@ declare module "pgnparser" {
 declare module "pgn" {
     export class Pgn {
         /**
-         * @param {string} path stdin if ''
+         * load a pgn file, or read from stdin if 'path' is '' or null
+         * @param {string} path stdin if '' or null
          * @param {Options} opts
-         * @return {Pgn} pgn
+         * @return {Pgn}
          */
         static load(path: string, opts?: Options): Pgn;
         /**
+         * parse a pgn string
          * @param {string} pgn
          * @param {Options} opts
+         * @return {Pgn}
          */
         constructor(pgn?: string, opts?: Options);
         games: any[];
         /**
+         * total number of games
          * @return {number}
          */
         count(): number;
         /**
+         * get a game
          * @param {number} idx
          * @return {Game}
          */
         game(idx: number): Game;
         /**
+         * add new game
          * @return {Game}
          */
         newgame(): Game;
-        pgn(): string;
-        _from_pgn(pgn?: string, opts?: {}): any[];
-        _from_file(path: any, opts?: {}): Promise<any[]>;
-        _handle_line(ctx: any, line: any, opts: any): Promise<void>;
-        _parse_movetext(game: any, movetext: any, fen?: string, opts?: {}): any;
         /**
-         * @return {error}
+         * return the pgn string of all games
+         * @return {string}
          */
-        _make_moves(game: any, parent: any, parsed_moves: any, fen: any, prev_move: any, ply: any): error;
+        pgn(): string;
+        /**
+         * @private
+         */
+        private _from_pgn;
+        /**
+         * @private
+         */
+        private _from_file;
+        /**
+         * @private
+         */
+        private _handle_line;
+        /**
+         * @private
+         */
+        private _parse_movetext;
+        /**
+         * @private
+         * @return {Err}
+         */
+        private _make_moves;
     }
     import { Game } from "game";
 }
@@ -128,6 +212,7 @@ type Tag = {
     valuee: string;
 };
 /**
+ *
  * from chess.js
  */
 type Move = {

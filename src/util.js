@@ -1,4 +1,7 @@
 export class Util {
+  /**
+   * @private
+   */
   static fill_move(move, chess) {
     move.fen = chess.fen()
     move.uci = move.from + move.to + (move.flags=='p'?move.promotion:'');
@@ -25,6 +28,9 @@ export class Util {
     }
   }
 
+  /**
+   * @private
+   */
   static move_num_from_fen(fen) {
     const tokens = fen?.split(/\s+/)
     return (tokens&&tokens.length>5)?parseInt(tokens[5]):1; 
