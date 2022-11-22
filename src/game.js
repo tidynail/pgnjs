@@ -82,9 +82,34 @@ export class Game {
   }
 
   pgn() {
-    let ctx = { out: '', line: '', indent: 0,
-      at$: function() { return (this.line.length<=this.indent); },
-      delimit: function(s) { if(!this.at$()) ctx.line += ' '; },
+    let ctx = { out: '', line: '', _indent: 0,
+      at$: function() { return (this.line.length<=this._indent); },
+      nl: function() {
+        if(ctx.line!=' '.repeat(ctx._indent)) {
+          ctx.out += ctx.line + '\n';
+          ctx.line = ' '.repeat(ctx._indent);
+        }
+      },
+      indent: function() {
+        if(ctx.line!=' '.repeat(ctx._indent))
+          ctx.out += ctx.line + '\n';
+
+        ctx._indent += 2;
+        ctx.line = ' '.repeat(ctx._indent);
+      },
+      unindent: function() {
+        ctx.out += ctx.line + '\n';
+        ctx._indent -= 2;
+        ctx.line = ' '.repeat(ctx._indent);
+      },
+      add: function(delim, s) { 
+        if(!this.at$()) 
+          ctx.line += delim; 
+        ctx.line += s;
+
+        if(ctx.line.length > 75)
+          nl();
+      },
     };
 
     STDTAGS.forEach(stdtag => {
@@ -122,12 +147,9 @@ export class Game {
       }
     }
 
-    ctx.delimit(' ');
-    ctx.line += endmark + '\n'; 
-
-    ctx.out += ctx.line;
-    ctx.line = '';
-
+    ctx.add(' ', endmark);
+    ctx.nl();
+    
     return ctx.out;
   }
 
@@ -138,8 +160,9 @@ export class Game {
     moves.forEach(move => {
 
       if(move.comment&&move.comment.pre) {
-        ctx.delimit(' ');
-        ctx.line += `{ ${move.comment.pre} }`;
+        ctx.nl();
+        ctx.add('', `{ ${move.comment.pre} }`);
+        ctx.nl();
       }
 
       if(move.color=='w' || firstmove ||
@@ -147,64 +170,46 @@ export class Game {
          (move.color=='b'&&white_had_comment) ||
          (move.color=='b'&&white_had_variation)) {
 
-        ctx.delimit(' ');
-        ctx.line += (move.color=='w'?`${move.num}.`:`${move.num}...`);
+        ctx.add(' ', (move.color=='w'?`${move.num}.`:`${move.num}...`));
 
         if(move.comment&&move.comment.before) {
-          ctx.delimit(' ');
-          ctx.line += `{ ${move.comment.before} } `;
+          ctx.add(' ', `{ ${move.comment.before} } `);
         }
       }
       else {
         if(move.comment&&move.comment.before) {
-          ctx.delimit(' ');
-          ctx.line += `{ ${move.comment.before} }`;
+          ctx.add(' ', `{ ${move.comment.before} }`);
         }
 
-        ctx.delimit(' ');
+        ctx.add(' ', '');
       }
-      ctx.line += move.san;
+      ctx.add('', move.san);
 
       if(move.nags) {
         move.nags.forEach((nag,idx) =>{
           if(QUICKNAG[nag]) {
-            if(idx>0)
-              ctx.delimit(' ');
-            ctx.line += `${QUICKNAG[nag]}`;
+            ctx.add(idx>0?' ':'', `${QUICKNAG[nag]}`);
           }
           else {
-            ctx.delimit(' ');
-            ctx.line += `${NAGSTR[nag]?NAGSTR[nag]:nag}`;
+            ctx.add(' ', `${NAGSTR[nag]?NAGSTR[nag]:nag}`);
           }
         });
       }
 
       if(move.comment&&move.comment.after) {
-        ctx.delimit(' ');
-        ctx.line += `{ ${move.comment.after} }`;
+        ctx.add(' ', `{ ${move.comment.after} }`);
       }
 
       if(move.vars.length) {
         move.vars.forEach(rav => {
-          if(ctx.line!=' '.repeat(ctx.indent))
-            ctx.out += ctx.line + '\n';
-
-          ctx.indent += 2;
-          ctx.line = ' '.repeat(ctx.indent);
+          ctx.indent();
 
           ctx.line += '(';
           this._moves_to_pgn(ctx, rav);        
-          ctx.delimit(' ');
-          ctx.line += ')';
-          ctx.out += ctx.line + '\n';
-          ctx.indent -= 2;
-          ctx.line = ' '.repeat(ctx.indent);
-        });
-      }
+          ctx.add(' ', ')');
 
-      if(ctx.line.length > 75) {
-        ctx.out += ctx.line + '\n';
-        ctx.line = ' '.repeat(ctx.indent);
+          ctx.unindent();
+        });
       }
 
       white_had_comment = (move.color=='w'&&move.comment&&move.comment.after);
