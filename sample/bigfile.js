@@ -4,7 +4,7 @@ import { Pgn } from 'pgn.js';
 var writer = createWriteStream('output.pgn');
 
 let ngames = 0;
-Pgn.load('./pgn/big2.pgn', {onGame: (game, err) => {
+Pgn.load('./pgn/big.pgn', {onGame: (game, err) => {
   ngames++;
 
   if(err) {

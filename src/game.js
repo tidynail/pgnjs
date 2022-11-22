@@ -25,13 +25,18 @@ const STDTAGS = [
   "FEN",
 ];
 
-const NAGSTR = {
+const QUICKNAG = {
   '$1': '!',
   '$2': '?',
   '$3': '!!',
   '$4': '??',
   '$5': '!?',
   '$6': '?!',
+};
+
+const NAGSTR = {
+  '$18': '+-',
+  '$19': '-+',
 };
 
 export class Game {
@@ -160,13 +165,18 @@ export class Game {
       }
       ctx.line += move.san;
 
-      if(move.nag) {
-        if(NAGSTR[move.nag])
-          ctx.line += `${NAGSTR[move.nag]}`;
-        else {
-          ctx.delimit(' ');
-          ctx.line += `${move.nag}`;
-        }
+      if(move.nags) {
+        move.nags.forEach((nag,idx) =>{
+          if(QUICKNAG[nag]) {
+            if(idx>0)
+              ctx.delimit(' ');
+            ctx.line += `${QUICKNAG[nag]}`;
+          }
+          else {
+            ctx.delimit(' ');
+            ctx.line += `${NAGSTR[nag]?NAGSTR[nag]:nag}`;
+          }
+        });
       }
 
       if(move.comment&&move.comment.after) {

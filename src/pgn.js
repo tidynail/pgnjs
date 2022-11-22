@@ -226,26 +226,26 @@ export class Pgn {
               move.num = Util.move_num_from_fen(fen);
           }
 
-          if (parsed_move.nag) {
-            move.nag = parsed_move.nag[0]
+          if (parsed_move.nags) {
+            move.nags = [...new Set(parsed_move.nags)];
           }
           if(parsed_move.comment_pre||parsed_move.comment_before||parsed_move.comment_after)
           {
             move.comment = {};
             if (parsed_move.comment_pre) {
-              move.comment.pre = parsed_move.comment_pre
+              move.comment.pre = parsed_move.comment_pre;
             }
             if (parsed_move.comment_before) {
-              move.comment.before = parsed_move.comment_before
+              move.comment.before = parsed_move.comment_before;
             }
             if (parsed_move.comment_after) {
-              move.comment.after = parsed_move.comment_after
+              move.comment.after = parsed_move.comment_after;
             }
           }
-          move.vars = []
-          const parsedVars = parsed_move.vars
+          move.vars = [];
+          const parsedVars = parsed_move.vars;
           if (parsedVars.length > 0) {
-            const lastFen = moves.length > 0 ? moves[moves.length - 1].fen : fen
+            const lastFen = moves.length > 0 ? moves[moves.length - 1].fen : fen;
             for (let parsedVar of parsedVars) {
               let rav = [];
               let err = this._make_moves(game, rav, parsedVar, lastFen, prev_move, ply);
@@ -255,8 +255,8 @@ export class Pgn {
                 return err;
             }
           }
-          moves.push(move)
-          prev_move = move
+          moves.push(move);
+          prev_move = move;
         } else {
           return {
             msg: 'Illegal move',

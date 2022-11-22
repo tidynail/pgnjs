@@ -14,16 +14,16 @@
 }
 
 pgn
-  = move:move rest:move? ws_
+  = move:move rest:move? ws*
     { var arr = (rest ? rest : []); 
       arr.unshift(move);
       return arr; }
-  / ws_
+  / ws*
     { return [[]]; }
 
 move
-  = ws_ c_pre:comment? ws_ num:mvnum? ws_ c_before:comment? ws_
-    text:san  ws_ nag:nags?  ws_ c_after:comment? ws_ rav:rav? rest:move?
+  = ws* c_pre:comment? ws* num:mvnum? ws* c_before:comment? ws*
+    text:san ws* nags:nags? ws* c_after:comment? ws* rav:rav? rest:move?
     { var arr = (rest ? rest : []);
       var move = {}; 
       move.num = num;
@@ -32,7 +32,7 @@ move
       move.comment_before = c_before; 
       move.comment_after = c_after;
       move.vars = (rav ? rav : []); 
-      move.nag = (nag ? nag : null); 
+      move.nags = (nags ? nags : null); 
       arr.unshift(move); return arr; }
   / gtm:game_terminal_marker?
     { return gtm; }
@@ -42,16 +42,16 @@ game_terminal_marker
   / "0:1" { var move = { gtm: "0-1" }; return [move]; }
   / "1-0" { var move = { gtm: "1-0" }; return [move]; }
   / "0-1" { var move = { gtm: "0-1" }; return [move]; }
-  / "1/2-1/2"  { var move = { gtm: "1-0" }; return [move]; }
+  / "1/2-1/2"  { var move = { gtm: "1/2-1/2" }; return [move]; }
   / "*"  { var move = { gtm: "*" }; return [move]; }
 
 comment
   = '{' cmt:[^}]* '}' { return cmt.join("").trim(); }
 
 rav
-  = '(' rav:move ')' ws_ rest:rav?
+  = '(' rav:move ')' ws* rest:rav?
     { var arr = (rest ? rest : []); arr.unshift(rav); return arr; }
-  / '(' ws_ ')'
+  / '(' ws* ')'
     { var arr = []; return arr; }
 
 mvnum
@@ -62,9 +62,7 @@ number
 
 nonzero
     = digit:[1-9] { return digit; }
-ws_
-  = ws*
-
+    
 ws
   = ' '
   / '\t'
@@ -85,14 +83,14 @@ san
   / '0-0' ch:check? { var san = {}; san.san = 'O-O'+ (ch ? ch : ""); san.check = (ch ? ch : null); return  san; }
 
 check
-  = ch:(! '+-' '+') { return ch[1]; }
-  / ch:(! '$$$' '#') { return ch[1]; }
+  = ch:'+' { return ch; }
+  / ch:'#' { return ch; }
 
 promotion
   = '=' f:piece { return '=' + f; }
 
 nags
-  = nag:nag ws_ rest:nags? { var arr = (rest ? rest : []); arr.unshift(nag); return arr; }
+  = nag:nag ws* rest:nags? { var arr = (rest ? rest : []); arr.unshift(nag); return arr; }
 
 nag
   = '$' num:number { return '$' + num; }
