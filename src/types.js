@@ -80,5 +80,5 @@
  * @typedef {Object} Options
  * @prop {boolean=} verbose print error message
  * @prop {OnGame} onGame    called when a game is parsed
- * @prop {OnFinishe} onFinish
+ * @prop {OnFinish} onFinish
  */

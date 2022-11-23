@@ -212,7 +212,6 @@ type Tag = {
     valuee: string;
 };
 /**
- *
  * from chess.js
  */
 type Move = {
@@ -334,6 +333,6 @@ type Options = {
      * called when a game is parsed
      */
     onGame: OnGame;
-    onFinish: OnFinishe;
+    onFinish: OnFinish;
 };
 //# sourceMappingURL=index.d.ts.map
