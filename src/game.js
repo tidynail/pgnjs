@@ -1,7 +1,7 @@
 import { Chess } from 'chess.js';
 import { Util } from './util.js';
 
-export const VARMODE = {
+export const VAR = {
   replace:  'replace',  // replace old move with new one, no variation
   main: 'main',         // becomes the mainline
   next: 'next',         // added as the next variation
@@ -58,9 +58,10 @@ export class Game {
     this.gtm = null;  // game termination mark
 
     /** @type {Move} */
-    this.cur = null;
-    /** @type {VARMODE} */
-    this.varmode = VARMODE.last;
+    this.prev = null; // successfully added previous move
+
+    /** @type {VAR} */
+    this.var = VAR.last;  // default variation mode
   }
 
   /**
@@ -108,8 +109,8 @@ export class Game {
    * @param {string} name 
    * @return {void}
    */
-  delTag(_name) {
-    const i = this.tags.findIndex(tag => {return tag.name.toUpperCase()==_name.toUpperCase();});
+  delTag(name) {
+    const i = this.tags.findIndex(tag => {return tag.name.toUpperCase()==name.toUpperCase();});
     if(i>=0)
       this.tags.splice(i,1);
   }
@@ -259,30 +260,30 @@ export class Game {
   }
 
   /**
-   * add a move, this.cur will be updated if successful
+   * add a move, this.prev will be updated if successful
    * @param {string} san            // short algebraic notation
    * @param {Move=} prev            // add after this move
-   *                                // this.cur if undefined
-   *                                // first move if null
-   * @param {VARMODE=} varmode  // variation mode, 'varmode' if null
+   *                                // if undefined, next to the prevously added move
+   *                                // if null, as the game's first move
+   * @param {VAR=} varmode      // variation mode, 'this.var' if null
    */
   add(san, prev, varmode) {
-    let prev_move = prev===undefined?this.cur:prev;
+    let prev_move = prev===undefined?this.prev:prev;
     let line = prev_move?prev_move.line:this.moves;
     let iprev = prev_move?line.indexOf(prev_move):-1;
     let oldmove = (iprev+1)<line.length?line[iprev+1]:null;
 
     let move;
     if(oldmove) {
-      let vm = varmode?varmode:this.varmode;
+      let vm = varmode?varmode:this.var;
 
       // variation
       switch(vm) {
-        case VARMODE.replace: move = this._add_replace(san, prev_move); break;
-        case VARMODE.main: move = this._add_mainvar(san, prev_move); break;
-        case VARMODE.next: move = this._add_nextvar(san, prev_move); break;
+        case VAR.replace: move = this._add_replace(san, prev_move); break;
+        case VAR.main: move = this._add_mainvar(san, prev_move); break;
+        case VAR.next: move = this._add_nextvar(san, prev_move); break;
         default:
-        case VARMODE.last: move = this._add_lastvar(san, prev_move); break;
+        case VAR.last: move = this._add_lastvar(san, prev_move); break;
       }
     }
     else {
@@ -291,7 +292,7 @@ export class Game {
     }
 
     if(move)
-      this.cur = move;
+      this.prev = move;
     
     return move;
   }
@@ -408,7 +409,7 @@ export class Game {
     let line = prev?prev.line:this.moves;
     let iprev = prev?line.indexOf(prev):-1;
     line.splice(iprev+1);
-    return this.move(san, line);
+    return this.add(san, prev);
   }
 
   /**

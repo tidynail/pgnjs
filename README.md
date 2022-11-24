@@ -18,9 +18,9 @@ const pgn = new Pgn(
 [Site "Toronto"]
 [Date "2022.11.17"]
 {This is a sample game for Png.js}
-1.d4 (1.e4 c5 (1...e5 Bc4) (1...e6)) d5 {move comment} 
-2.c4 (2.Nf3 {variation move comment} Nf6) 
-(2. {comment before a move} Bf4) 2...c6 Nf3`);
+1.d4 (1.e4 c5 (1...e5 Bc4) (1...e6)) d5 {move comment}
+2.c4! +- (2.Nf3 {variation move comment} Nf6)
+(2. {comment before a move} Bf4) 2...c6 Nf3`, {verbose: true});
 
 console.log(pgn.pgn());
 ```
@@ -31,12 +31,13 @@ console.log(pgn.pgn());
 [Site "Toronto"]
 [Date "2022.11.17"]
 
-{ This is a sample game for Png.js } 1.d4
+{ This is a sample game for Png.js }
+1.d4
   ( 1.e4 c5
     ( 1...e5 2.Bc4 )
     ( 1...e6 )
   )
-1...d5 { move comment } 2.c4
+1...d5 { move comment } 2.c4! +-
   ( 2.Nf3 { variation move comment } 2...Nf6 )
   ( 2. { comment before a move } Bf4 )
 2...c6 3.Nf3 *
@@ -53,40 +54,40 @@ let game = pgn.newgame();
 game.setTag('Event', 'Sample');
 game.setFen('rn3rk1/ppp1b1pp/1n2p3/4N2Q/3qNR2/8/PPP3PP/R1B4K b - - 0 13');
 
-// add a move to the mainline
-game.move('Qxe4');
+// add a move
+let mvQxe4 = game.add('Qxe4');
 //  13...Qxe4
 
-// add another to the mainline
-let mv = game.move('Rxf8');
+// add a move next to the previous one
+game.add('Rxf8');
 // 13...Qxe4 14.Rxf8+
 
-// add a varation to the next to mv.prev == 'Qxe4'
-game.var('Nd3', mv.prev);
+// add a varation to the next to 'Qxe4'
+game.add('Nd3', mvQxe4);
 // 13...Qxe4 14.Rxf8+
 //   ( 14.Nd3 )
 
-// add 2 variations for the first move 13...Qxe4
-// the prev of the first move == null
-let vm = game.var('N8d7', null);
-game.var('Nc6', null);
+// add 2 variations at the beginning
+// null == the begin of the game
+let mvN8d7 = game.add('N8d7', null);
+game.add('Nc6', null);
 // 13...Qxe4
 //   ( 13...N8d7 )
 //   ( 13...Nc6 )
 // 14.Rxf8+
 //   ( 14.Nd3 )
 
-// add moves to the saved 'N8d7' line
-mv = game.move('Nxd7', vm.line);
-game.move('Qxe4', vm.line);
+// add moves next to 'N8d7'
+game.add('Nxd7', mvN8d7);
+game.add('Qxe4'); // undefined == next to the previous
 // 13...Qxe4
 //   ( 13...N8d7 14.Nxd7 Qxe4 )
 //   ( 13...Nc6 )
 // 14.Rxf8+
 //   ( 14.Nd3 )
 
-// add another variation line to the variation 'Nxd7' line above
-vm = game.var('Nf7', mv.prev);
+// add a variation next to' N8d7'
+game.add('Nf7', mvN8d7);
 // 13...Qxe4
 //   ( 13...N8d7 14.Nxd7
 //     ( 14.Nf7 )
@@ -95,9 +96,9 @@ vm = game.var('Nf7', mv.prev);
 // 14.Rxf8+
 //   ( 14.Nd3 )
 
-// add moves to the last variation line 'Nf7'
-game.move('Qd5', vm.line);
-game.move('Nh6', vm.line);
+// add moves to the previous
+game.add('Qd5');
+game.add('Nh6');
 
 console.log(game.pgn());
 ```
@@ -116,89 +117,92 @@ console.log(game.pgn());
   ( 13...Nc6 )
 14.Rxf8+
   ( 14.Nd3 )
+*
 ```
 
-# Add Moves
-
-* move(san: string, line?: Move[]): Move | null
+# Add a Move
 
 ```js
-// add a move to the end of the mainline
-game.move('Qxe4');
-
-// add a move to the end of the vm.line variation
-game.move('Nxd7', vm.line);
+Game.add(san: string, prev?: Move | null, varmode?: VAR): Move | null;
+  // prev
+  // if 'undefined', next to the previously added move
+  // if 'null', as the first move
+  // otherwise, next to 'prev' move
+  //
+  // varmode
+  // if 'undefined' or 'null', Game.var, default==VAR.last
+  // VAR.last, as the last variation
+  // VAR.next, as the next variation
+  // VAR.main, as the main line
+  // VAR.replace, delete existing, no variation
 ```
 
-# Variations
+## Examples
 
-1. var(san: string, prev?: Move): Move | null
-2. main(san: string, prev?: Move): Move | null
-3. next(san: string, prev?: Move): Move | null
-4. replace(san: string, prev?: Move): Move | null
-
-### Precondition
 ```js
-game.move('Qxe4');
-let mv = game.move('Rxf8');
-// 13...Qxe4 14.Rxf8+
-// mv == 'Rxf8', mv.prev == 'Qxe4'
+// add a move
+let mvQxe4 = game.add('Qxe4');
+  // 13...Qxe4
+
+// add a move next to the previous move 'Qxe4'
+game.add('Rxf8');
+  // 13...Qxe4 14.Rxf8+
 ```
-## var, as the last variation
-
-add the move as the last variation
-
+### game.var == VAR.last by default
 ```js
-game.var('Nd3', mv.prev);
-game.var('Bd2', mv.prev);
-game.var('Be3', mv.prev);
-console.log(pgn.pgn());
+game.add('Nd3', mvQxe4);
+game.add('Bd2', mvQxe4);
+game.add('Be3', mvQxe4);
 // 13...Qxe4 14.Rxf8+
 //   ( 14.Nd3 )
 //   ( 14.Bd2 )
 //   ( 14.Be3 )
 ```
 
-## next, as the next variation
-
-add the move as the very next variation
+### VAR.next, as the next variation
 
 ```js
-game.next('Nd3', mv.prev);
-game.next('Bd2', mv.prev);
-game.next('Be3', mv.prev);
-console.log(pgn.pgn());
+game.add('Nd3', mvQxe4, VAR.next);
+game.add('Bd2', mvQxe4, VAR.next);
+game.add('Be3', mvQxe4, VAR.next);
 // 13...Qxe4 14.Rxf8+
 //   ( 14.Be3 )
 //   ( 14.Bd2 )
 //   ( 14.Nd3 )
 ```
 
-## main, as the mainline
-
-make others as variations
+## VAR.main, as the mainline
 
 ```js
-game.main('Nd3', mv.prev);
-game.main('Bd2', mv.prev);
-game.main('Be3', mv.prev);
-console.log(pgn.pgn());
+game.add('Nd3', mvQxe4, VAR.main);
+game.add('Bd2', mvQxe4, VAR.main);
+game.add('Be3', mvQxe4, VAR.main);
 // 13...Qxe4 14.Be3
 //   ( 14.Bd2 )
 //   ( 14.Nd3 )
 //   ( 14.Rxf8+ )
 ```
 
-## replace, no variation
-
-overwite old move, no variation
+## VAR.replace, no variation
 
 ```js
-game.replace('Nd3', mv.prev);
-game.replace('Bd2', mv.prev);
-game.replace('Be3', mv.prev);
-console.log(pgn.pgn());
+game.add('Nd3', mvQxe4, VAR.replace);
+game.add('Bd2', mvQxe4, VAR.replace);
+game.add('Be3', mvQxe4, VAR.replace);
 // 13...Qxe4 14.Be3
+```
+
+## change default var mode
+
+```js
+game.var = VAR.main;
+game.add('Nd3', mvQxe4);
+game.add('Bd2', mvQxe4);
+game.add('Be3', mvQxe4);
+// 13...Qxe4 14.Be3
+//   ( 14.Bd2 )
+//   ( 14.Nd3 )
+//   ( 14.Rxf8+ )
 ```
 
 # Async, big file handling
@@ -206,7 +210,7 @@ console.log(pgn.pgn());
 Without loading the whole file, parsing games as reading the input file.
 
 ```js
-async Pgn.load(path: string, opts: Option): Pgn;
+async Pgn.load(path: string, opts?: Option): Pgn;
   // stdin if path == ''
 
 opts.onGame: (game: Game, error: Error) => void
@@ -238,19 +242,27 @@ Pgn.load('./pgn/big.pgn', {onGame: (game) => {
 ## Type
 
 ```ts
-export interface Error {
-  msg?: string,
-  fen?: string,
-  san?: string,
-  num?: number,
-  movetext?: string,
-
-  // from parser
-  found?: string,   // unexpected token
-  location: {
-    start: { offset: number, line: number, column: number},
-    end: { offset: number, line: number, column: number}
-  }    
+type Err = {
+    msg?: string | undefined;
+    fen?: string | undefined;
+    san?: string | undefined;
+    num?: number | undefined;
+    movetext?: string | undefined;
+    /**
+     * unexpected token
+     */
+    found?: string | undefined;
+    location?: any | undefined;
+    start: {
+        offset: number;
+        line: number;
+        column: number;
+    };
+    end: {
+        offset: number;
+        line: number;
+        column: number;
+    };
 };
 ```
 
@@ -284,69 +296,117 @@ Pgn.load('./pgn/big2.pgn', {onGame: (game, err) => {
 ## Options
 
 ```ts
-export interface Options {
-  verbose: boolean, // print error message
-  onGame: (game: Game, error: Error): void,
-  onFinish: (): void,
+type OnGame = (game: Game, error: Err) => void;
+type OnFinish = () => void;
+type Options = {
+    /**
+     * print error message
+     */
+    verbose?: boolean | undefined;
+    /**
+     * called when a game is parsed
+     */
+    onGame: OnGame;
+    onFinish: OnFinish;
 };
 ```
 
 ## Move
 
 ```ts
-export interface Move {
-  // from chess.js
-  color: string, /* 'w', 'b' */
-  from: string,
-  to: string,
-  flags: string,
-    /*
-    'n' - a non-capture
-    'b' - a pawn push of two squares
-    'e' - an en passant capture
-    'c' - a standard capture
-    'p' - a promotion
-    'k' - kingside castling
-    'q' - queenside castling
-    */
-  piece: string, /* p, b, n, r, q, k */
-  san: string,
-  captured?: string,
-  promotion?: string,
-
-  // extends by pgn.js
-  num: number,            // move number, not ply
-  fen: string,
-  uci: string,            // uci long algebraic notation
-
-  comment?: {
-    pre?: string,         // comment before move number
-    before?: string,      // comment before san
-    after?: string        // comment after san and nag
-  },
-  nag?: string,           // $<number>
-
-  vars?: Move[][],
-
-  // status
-  over?: {
-    mate?: boolean,       // checkmate
-    draw?: string,        // stale, 3fold, fifty, material
-  },
-  check?: boolean,        // check by this move
-
-  ply: number,
-  line: Move[],         // array containing this move
-  prev: Move,           // previous move
+type Move = {
+    /**
+     * 'w', 'b'
+     */
+    color: string;
+    /**
+     * square
+     */
+    from: string;
+    /**
+     * square
+     */
+    to: string;
+    /**
+     * 'n' - a non-capture
+     * 'b' - a pawn push of two squares
+     * 'e' - an en passant capture
+     * 'c' - a standard capture
+     * 'p' - a promotion
+     * 'k' - kingside castling
+     * 'q' - queenside castling
+     */
+    flags: string;
+    /**
+     * p, b, n, r, q, k
+     */
+    piece: string;
+    /**
+     * SAN notation
+     */
+    san: string;
+    captured?: string | undefined;
+    /**
+     * extended by pgn.js
+     */
+    promotion?: string | undefined;
+    /**
+     * move number, not ply
+     */
+    num: number;
+    /**
+     * position fen
+     */
+    fen: string;
+    /**
+     * uci long algerbraic notation
+     */
+    uci: string;
+    comment?: any | undefined;
+    /**
+     * comment before move number
+     */
+    pre?: string | undefined;
+    /**
+     * comment before san
+     */
+    before?: string | undefined;
+    /**
+     * comment after san and nag
+     */
+    after?: string | undefined;
+    nags: string[];
+    /**
+     * variations (RAV)
+     */
+    vars: Move[][];
+    over?: any | undefined;
+    /**
+     * checkmate
+     */
+    mate?: boolean | undefined;
+    /**
+     * 'stale', '3fold', 'fifty', 'material'
+     */
+    draw?: string | undefined;
+    ply: number;
+    /**
+     * the line contaning this move
+     */
+    line: Move[];
+    /**
+     * previous move
+     */
+    prev: Move;
 };
 ```
 
 ## Tag
 
 ```ts
-export interface Tag {
-  name: string,
-  value: string,
+type Tag = {
+    name: string;
+    valuee: string;
 };
 ```
 
@@ -364,6 +424,7 @@ Pgn(pgn: string, opts: Options);
 
 pgn.count() : Number  // # of games
 pgn.game(idx: Number): Game // access a game
+pgn.newgame(): Game // create a new game
 
 static async Pgn.load(path: string, opts: Options): Pgn 
   // load from file, stdin if path == ''
@@ -374,21 +435,24 @@ static async Pgn.load(path: string, opts: Options): Pgn
 ### Data
 
 ```js
-game.tags = Tag[];
-game.moves = Move[];
+game.tags: Tag[];
+game.moves: Move[];
+game.gtm : string;      // game termintion mark
 ```
 
 ### Functions
 
-```js
-game.setupFen(): string | undefined                 // setup fen string or undefined if none
-game.setFen(fen: string);                           // set setup fen string
-game.setTag(name: string, value: string);           // set a tag
-game.delTag(name);                                  // delete a tag
+```ts
+game.setupFen(): string | undefined             // setup fen string or undefined if none
+setFen(fen: string): void;                      // set setup fen string (and SetUp)
+delFen(): void;                                 // delete setup fen string (and SetUp)
+setTag(name: string, value: string): void;      // set a tag
+delTag(_name: any): void;                       // delete a tag
 
-game.move(san: string, line?: Move[]): Move | null  // append a move to the line
-game.var(san: string, prev?: Move): Move | null     // add a last variation move
-game.main(san: string, prev?: Move): Move | null    // add a mainline move
-game.next(san: string, prev?: Move): Move | null    // add a next variation move
-game.replace(san: string, prev?: Move): Move | null // replace a move
+game.(add(san: string, prev?: Move | undefined, varmode?: {
+            replace: string;
+            main: string;
+            next: string;
+            last: string;
+        } | undefined): Move;
 ```

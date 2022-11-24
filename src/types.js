@@ -52,13 +52,13 @@
  * @prop {number=} num
  * @prop {string=} movetext
  * 
- * from parser
  * @prop {string=} found  unexpected token
  * @prop {Object=} location
  * @prop {Object} location.start
  * @prop {number} location.start.offset
  * @prop {number} location.start.line
  * @prop {number} location.start.column
+ * @prop {Object} location.end
  * @prop {number} location.end.offset
  * @prop {number} location.end.line
  * @prop {number} location.end.column

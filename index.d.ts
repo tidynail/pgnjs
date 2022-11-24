@@ -11,7 +11,7 @@ declare module "util" {
     }
 }
 declare module "game" {
-    export namespace VARMODE {
+    export namespace VAR {
         const replace: string;
         const main: string;
         const next: string;
@@ -25,9 +25,9 @@ declare module "game" {
         /** @type {string} */
         gtm: string;
         /** @type {Move} */
-        cur: Move;
-        /** @type {VARMODE} */
-        varmode: {
+        prev: Move;
+        /** @type {VAR} */
+        var: {
             replace: string;
             main: string;
             next: string;
@@ -61,7 +61,7 @@ declare module "game" {
          * @param {string} name
          * @return {void}
          */
-        delTag(_name: any): void;
+        delTag(name: string): void;
         /**
          * return pgn string of the game
          * @return {void}
@@ -72,12 +72,12 @@ declare module "game" {
          */
         private _moves_to_pgn;
         /**
-         * add a move, this.cur will be updated if successful
+         * add a move, this.prev will be updated if successful
          * @param {string} san            // short algebraic notation
          * @param {Move=} prev            // add after this move
-         *                                // this.cur if undefined
-         *                                // first move if null
-         * @param {VARMODE=} varmode  // variation mode, 'varmode' if null
+         *                                // if undefined, next to the prevously added move
+         *                                // if null, as the game's first move
+         * @param {VAR=} varmode      // variation mode, 'this.var' if null
          */
         add(san: string, prev?: Move | undefined, varmode?: {
             replace: string;
@@ -212,6 +212,7 @@ type Tag = {
     valuee: string;
 };
 /**
+ *
  * from chess.js
  */
 type Move = {
@@ -304,9 +305,6 @@ type Err = {
     fen?: string | undefined;
     san?: string | undefined;
     num?: number | undefined;
-    /**
-     * from parser
-     */
     movetext?: string | undefined;
     /**
      * unexpected token
@@ -318,9 +316,11 @@ type Err = {
         line: number;
         column: number;
     };
-    offset: number;
-    line: number;
-    column: number;
+    end: {
+        offset: number;
+        line: number;
+        column: number;
+    };
 };
 type OnGame = (game: Game, error: Err) => void;
 type OnFinish = () => void;
