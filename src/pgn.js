@@ -27,6 +27,7 @@ export class Pgn {
    * @return {Pgn}
    */
   constructor(pgn = '', opts = {}) {
+    /** @type {Game[]} */
     this.games = this._from_pgn(pgn, opts);
   }
 

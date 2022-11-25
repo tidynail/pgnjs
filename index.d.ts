@@ -161,7 +161,8 @@ declare module "pgn" {
          * @return {Pgn}
          */
         constructor(pgn?: string, opts?: Options);
-        games: any[];
+        /** @type {Game[]} */
+        games: Game[];
         /**
          * total number of games
          * @return {number}
