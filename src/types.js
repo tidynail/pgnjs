@@ -28,14 +28,14 @@
  * @prop {number} num     move number, not ply
  * @prop {string} fen     position fen
  * @prop {string} uci     uci long algerbraic notation
- * @prop {Object=} comment
+ * @prop {Object} comment
  * @prop {string=} comment.pre      comment before move number
  * @prop {string=} comment.before   comment before san
  * @prop {string=} comment.after    comment after san and nag
 
  * @prop {string[]} nags
  * @prop {Move[][]} vars      variations (RAV)
- * @prop {Object=} over
+ * @prop {Object} over
  * @prop {boolean=} over.mate checkmate
  * @prop {string=} over.draw  'stale', '3fold', 'fifty', 'material'
 

@@ -212,7 +212,6 @@ type Tag = {
     valuee: string;
 };
 /**
- *
  * from chess.js
  */
 type Move = {
@@ -263,33 +262,20 @@ type Move = {
      * uci long algerbraic notation
      */
     uci: string;
-    comment?: any | undefined;
-    /**
-     * comment before move number
-     */
-    pre?: string | undefined;
-    /**
-     * comment before san
-     */
-    before?: string | undefined;
-    /**
-     * comment after san and nag
-     */
-    after?: string | undefined;
+    comment: {
+        pre?: string | undefined;
+        before?: string | undefined;
+        after?: string | undefined;
+    };
     nags: string[];
     /**
      * variations (RAV)
      */
     vars: Move[][];
-    over?: any | undefined;
-    /**
-     * checkmate
-     */
-    mate?: boolean | undefined;
-    /**
-     * 'stale', '3fold', 'fifty', 'material'
-     */
-    draw?: string | undefined;
+    over: {
+        mate?: boolean | undefined;
+        draw?: string | undefined;
+    };
     ply: number;
     /**
      * the line contaning this move
