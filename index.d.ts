@@ -212,6 +212,7 @@ type Tag = {
     valuee: string;
 };
 /**
+ *
  * from chess.js
  */
 type Move = {
@@ -267,6 +268,9 @@ type Move = {
         before?: string | undefined;
         after?: string | undefined;
     };
+    /**
+     * nag = '!','?','!!','??','!?','?!','+-','-+', or $<num>
+     */
     nags: string[];
     /**
      * variations (RAV)

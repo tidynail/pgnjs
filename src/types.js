@@ -33,7 +33,7 @@
  * @prop {string=} comment.before   comment before san
  * @prop {string=} comment.after    comment after san and nag
 
- * @prop {string[]} nags
+ * @prop {string[]} nags      nag = '!','?','!!','??','!?','?!','+-','-+', or $<num>
  * @prop {Move[][]} vars      variations (RAV)
  * @prop {Object} over
  * @prop {boolean=} over.mate checkmate

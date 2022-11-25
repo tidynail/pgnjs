@@ -94,16 +94,16 @@ nags
 
 nag
   = '$' num:number { return '$' + num; }
-  / '!!' { return '$3'; }
-  / '??' { return '$4'; }
-  / '!?' { return '$5'; }
-  / '?!' { return '$6'; }
-  / '!' { return '$1'; }
-  / '?' { return '$2'; }
-  / '‼' { return '$3'; }
-  / '⁇' { return '$4'; }
-  / '⁉' { return '$5'; }
-  / '⁈' { return '$6'; }
+  / '!!' { return '!!'; }
+  / '??' { return '??'; }
+  / '!?' { return '!?'; }
+  / '?!' { return '?!'; }
+  / '!' { return '!'; }
+  / '?' { return '?'; }
+  / '‼' { return '!!'; }
+  / '⁇' { return '??'; }
+  / '⁉' { return '!?'; }
+  / '⁈' { return '?!'; }
   / '□' { return '$7'; }
   / '=' { return '$10'; }
   / '∞' { return '$13'; }
@@ -111,8 +111,8 @@ nag
   / '⩱' { return '$15';}
   / '±' { return '$16';}
   / '∓' { return '$17';}
-  / '+-' { return '$18';}
-  / '-+' { return '$19';}
+  / '+-' { return '+-';}
+  / '-+' { return '-+';}
   / '⨀' { return '$22'; }
   / '⟳' { return '$32'; }
   / '→' { return '$36'; }
