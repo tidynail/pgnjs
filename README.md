@@ -409,9 +409,10 @@ pgn.games = Game[];
 ```js
 Pgn(pgn: string, opts: Options);
 
-pgn.count() : Number  // # of games
-pgn.game(idx: Number): Game // access a game
-pgn.newgame(): Game // create a new game
+pgn.count() : Number          // # of games
+pgn.game(idx: Number): Game   // access a game
+pgn.newgame(): Game           // create a new game
+pgn.pgn(): void;              // pgn string
 
 static async Pgn.load(path: string, opts: Options): Pgn 
   // load from file, stdin if path == ''
@@ -431,15 +432,17 @@ game.gtm : string;      // game termintion mark
 
 ```ts
 game.setupFen(): string | undefined             // setup fen string or undefined if none
-setFen(fen: string): void;                      // set setup fen string (and SetUp)
-delFen(): void;                                 // delete setup fen string (and SetUp)
-setTag(name: string, value: string): void;      // set a tag
-delTag(_name: any): void;                       // delete a tag
+game.setFen(fen: string): void;                 // set setup fen string (and SetUp)
+game.delFen(): void;                            // delete setup fen string (and SetUp)
+game.setTag(name: string, value: string): void; // set a tag
+game.delTag(_name: any): void;                  // delete a tag
 
-game.(add(san: string, prev?: Move | undefined, varmode?: {
+game.add(san: string, prev?: Move | undefined, varmode?: {
             replace: string;
             main: string;
             next: string;
             last: string;
         } | undefined): Move;
+
+game.pgn(): void;                               // pgn string
 ```
